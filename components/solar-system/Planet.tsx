@@ -73,10 +73,8 @@ export function Planet({
 }: PlanetProps) {
   const groupRef = React.useRef<THREE.Group>(null);
   const angleRef = useOrbitAnimation(gameId, orbitSpeed, phase);
-  const { selectPlanet, focusedGameId } = useCameraState((s) => ({
-    selectPlanet: s.selectPlanet,
-    focusedGameId: s.focusedGameId,
-  }));
+  const selectPlanet = useCameraState((s) => s.selectPlanet);
+  const focusedGameId = useCameraState((s) => s.focusedGameId);
   const focused = focusedGameId === gameId;
 
   const uniforms = React.useMemo(

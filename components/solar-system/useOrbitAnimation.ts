@@ -24,26 +24,11 @@ export function useOrbitAnimation(gameId: string, orbitSpeed: number, phase = 0)
     return () => mq?.removeEventListener?.('change', onChange);
   }, []);
 
-  // Resume from stored angle when this gameId becomes unpaused.
-  React.useEffect(() => {
-    const unsub = useCameraState.subscribe((s, prev) => {
-      const wasPaused = prev.pausedOrbits.has(gameId);
-      const isPaused = s.pausedOrbits.has(gameId);
-      if (wasPaused && !isPaused) {
-        const stored = s.pausedAngles[gameId];
-        if (typeof stored === 'number') angleRef.current = stored;
-      }
-    });
-    return unsub;
-  }, [gameId]);
-
   useFrame((_, delta) => {
     if (reducedRef.current) return;
-    const { pausedOrbits, recordOrbitAngle } = useCameraState.getState();
-    if (pausedOrbits.has(gameId)) {
-      recordOrbitAngle(gameId, angleRef.current);
-      return;
-    }
+    // angleRef is the source of truth; we just hold it stable while paused
+    // so the planet resumes from where it stopped.
+    if (useCameraState.getState().pausedOrbits.has(gameId)) return;
     angleRef.current += delta * orbitSpeed;
   });
 

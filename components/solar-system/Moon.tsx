@@ -30,10 +30,8 @@ const _moonWorldPos = new THREE.Vector3();
 export function Moon({ gameId, serverId, radius, speed, phase, status, onPositionChange }: MoonProps) {
   const ref = React.useRef<THREE.Group>(null);
   const reducedRef = React.useRef<boolean>(false);
-  const { selectServer, focusedServerId } = useCameraState((s) => ({
-    selectServer: s.selectServer,
-    focusedServerId: s.focusedServerId,
-  }));
+  const selectServer = useCameraState((s) => s.selectServer);
+  const focusedServerId = useCameraState((s) => s.focusedServerId);
   const focused = focusedServerId === serverId;
 
   React.useEffect(() => {
