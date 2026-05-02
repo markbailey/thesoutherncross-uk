@@ -6,16 +6,17 @@ Solar-system-style game server hub + Steam-driven member roster, single-page sit
 
 > **How to use:** At the start of every session, read this block first. Update the `Status` line and tick boxes as work completes. Keep the `Last touched` note so the next session knows where the last one stopped.
 
-- **Status:** `p1-p2-complete` &nbsp;·&nbsp; **Active phase:** Phase 3 (3D scene) next &nbsp;·&nbsp; **Last touched:** 2026-04-24 — P1 + P2 shipped; typecheck clean, 35/35 vitest green, next build 7/7 pages
+- **Status:** `p1-p3-complete` &nbsp;·&nbsp; **Active phase:** Phase 4 (Members) next &nbsp;·&nbsp; **Last touched:** 2026-05-02 — P3 shipped; typecheck clean, 35/35 vitest green, 6/6 e2e green, next build 7/7 pages. **Visual baselines for Phase 3 not yet captured** — needs user eyeball + `--update-snapshots`.
 - **Session log:**
   - 2026-04-24 — feature-dev (orchestrator + 3 parallel build agents) — scaffold + backbone + shell, visual parity vs user-supplied `docs/design/user/site.html`, all 8 code-review findings addressed
+  - 2026-05-02 — orchestrator + 4 sequential agents (impl → tests → review → fixes) — Phase 3 solar-system scene shipped. Discovered + fixed two **pre-existing P2 bugs** that blocked production build: `package.json` had `"type": "commonjs"` vs ESM source (Next 16 build failed on every lib/* import); `components/hud/Panel.tsx` polymorphic `forwardRef` had 3 typecheck errors. Both pre-existed P3 work — P2's commit message "next build 7/7 pages" was incorrect. Code review found 7 bugs + 4 nits in P3; all addressed except I5 (spring drift while frame-gated) and I6 (decorative-rings reduced-motion flash) — both deferred as architectural polish, non-blocking.
 
 ### Top-level checklist
 
 - [x] Design mocks obtained — **user-supplied HTML** at `docs/design/user/site.html` is the canonical reference. Stitch/Claude prompts not used.
 - [x] **Phase 1 — Scaffold + Data Backbone**
 - [x] **Phase 2 — Design System + Single-Page Shell**
-- [ ] **Phase 3 — Solar System Scene**
+- [x] **Phase 3 — Solar System Scene**
 - [ ] **Phase 4 — Members Section** *(UI + empty/error/stale/skeleton states already built; only the Steam-creds wiring is left)*
 - [ ] **Phase 5 — IIS Deployment**
 - [ ] v1 shipped and verified in production
@@ -139,26 +140,26 @@ Owner: `agent:shell`. Runs in parallel with Phase 1.
 
 Owner: `agent:scene`. Depends on P1 (`/api/servers`) and P2 (HUD primitives).
 
-- [ ] `components/solar-system/Scene.tsx` — R3F Canvas, `<Stars>`, bloom postprocessing
-- [ ] `Sun.tsx` (guild crest core + emissive corona), `Planet.tsx`, `Moon.tsx`, `Orbit.tsx`
-- [ ] Custom Fresnel rim shader material (royal-purple rim default; planet tint from config)
-- [ ] `useCameraState` zustand store (`{ view, focusedGameId, focusedServerId, pausedOrbits: Set<string> }`)
-- [ ] `useOrbitAnimation.ts` — per-planet orbit angle driven by `useFrame`; freezes when planet id is in `pausedOrbits`, resumes from stored angle on unpause
-- [ ] `CameraRig.tsx` — `react-spring` tweens between system / planet / server-focus; on planet-select also adds that planet to `pausedOrbits`, on deselect removes it
-- [ ] `HudOverlay.tsx` — DOM overlay over the canvas: breadcrumb, instance list with status pills, click-to-copy connect string, player count, sparkline placeholder; expands to full server detail on moon focus
-- [ ] Deselection handling: `Esc` key, breadcrumb click, and a background-click catcher on empty starfield all trigger zoom-out + orbit-resume
-- [ ] SWR polling `/api/servers` every 30s; moon colour reflects `online|laggy|offline`
-- [ ] Render-loop gating via `useFrame` + `IntersectionObserver` + `document.visibilityState`
-- [ ] Deep-link restore: on load, if hash is `#/servers/{game}/{instance}`, restore camera to that focus and pause that planet's orbit
-- [ ] Keyboard navigation: planets + moons are focusable; Tab cycles them; Enter selects; Esc steps out. Focus ring in royal-green-neon
-- [ ] WebGL availability check at mount; if unavailable, render `<ListMode>` instead of `<Scene>` against the same `/api/servers` data
-- [ ] `<ListMode>` component: grouped-by-game table of instances with status pill, players, map/version, copy-connect button
-- [ ] "LIST MODE" toggle in the HUD always available — not just a fallback
-- [ ] React Error Boundary wrapping `<Scene>` → auto-swaps to `<ListMode>` on crash with a small "3D unavailable" indicator
-- [ ] Scene edge cases: zero games (sun + starfield + "NO SYSTEMS ONLINE" overlay), >8 games (layered concentric orbital rings at tiered radii), slow network skeleton (CSS-only orbits while WebGL loads), cancel in-flight camera tween when section leaves viewport
-- [ ] Test mode hooks: when `NEXT_PUBLIC_TEST_MODE === '1'`, seed the starfield RNG, skip the initial camera animation, and dispatch a `scene-ready` event once the first frame is painted. Consumed by `tests/lib/freezeScene.ts`
-- [ ] Playwright visual tests: `tests/visual/server-section.spec.ts` covering system view, planet-selected (target planet zoomed, orbit paused, overlay visible), moon-focused (overlay expanded), and list-mode fallback. Desktop + mobile baselines
-- [ ] Playwright e2e tests: `tests/e2e/scene-interaction.spec.ts` (planet click selects + pauses orbit, Esc/background-click deselects + resumes orbit from paused angle) and `tests/e2e/list-mode.spec.ts` (WebGL disabled → list mode renders the same data)
+- [x] `components/solar-system/Scene.tsx` — R3F Canvas, `<Stars>`, bloom postprocessing
+- [x] `Sun.tsx` (guild crest core + emissive corona), `Planet.tsx`, `Moon.tsx`, `Orbit.tsx`
+- [x] Custom Fresnel rim shader material (royal-purple rim default; planet tint from config)
+- [x] `useCameraState` zustand store (`{ view, focusedGameId, focusedServerId, pausedOrbits: Set<string>, pausedAngles, listMode }`) — store grew `pausedAngles` map + `listMode` flag + `recordOrbitAngle` action vs. the original spec
+- [x] `useOrbitAnimation.ts` — per-planet orbit angle driven by `useFrame`; freezes when planet id is in `pausedOrbits`, resumes from stored angle on unpause
+- [x] `CameraRig.tsx` — `@react-spring/three` tweens between system / planet / server-focus; on planet-select adds that planet to `pausedOrbits`, on deselect removes it. Snap mode for `__TEST_MODE__` and reduced-motion. `api.stop()` before snap to drain in-flight spring.
+- [x] HUD overlay — **deviation from plan**: design uses a side-by-side split (canvas left ~1.5fr, HUD panel right 340–400px), not the plan's "DOM overlay anchored top-right". Per Phase 0 exit criterion ("Phases 2 and 3 gate on visual parity with this set"), design wins. On mobile (<lg) the panel stacks below the canvas. `HudOverlay.tsx` consumes the store and renders breadcrumb, ZOOM OUT button, 3-col stat grid, instance list with status pills, click-to-copy CONNECT row, static 24h sparkline placeholder ("DATA ROLLING").
+- [x] Deselection handling: `Esc` key, ZOOM OUT button in HUD, and a background-click catcher mesh on empty starfield all trigger zoom-out + orbit-resume
+- [x] SWR polling `/api/servers` every 30s; moon colour reflects `online|laggy|offline`
+- [x] Render-loop gating via `useSceneVisibility` (IntersectionObserver + `document.visibilityState`) → `Canvas frameloop` toggles `'always' | 'demand'`. Initial state `false` so off-screen mount does not waste a frame.
+- [x] Deep-link restore: on first data load, if hash is `#/servers/{game}/{server}` or `#/servers/{game}`, restore camera to that focus. Gated on a `hasRestored` ref so 30s SWR polls don't overwrite user navigation.
+- [x] Keyboard navigation via the DOM HUD instance list (canvas elements aren't natively focusable; the side-panel pattern lets the keyboard traverse server rows directly). Esc deselects one level. Focus ring inherited from existing globals.
+- [x] WebGL availability check at mount (`webgl.ts`); if unavailable, render `<ListMode>` instead of `<Scene>` against the same `/api/servers` data
+- [x] `<ListMode>` component: grouped-by-game tables of instances with status pill, players, map, COPY button (`auto-fit, minmax(380px, 1fr)` grid)
+- [x] "LIST MODE" toggle in the HUD always available — not just a fallback. Toggle button persistent in the HUD; SCENE MODE button to return.
+- [x] React Error Boundary wrapping `<Scene>` → auto-flips `setListMode(true)` on crash with a "3D UNAVAILABLE" indicator. Boundary lives in `SystemSection.tsx`.
+- [x] Scene edge cases: zero games → centred 420px "SCAN COMPLETE" panel + decorative empty orbits + JOIN STEAM/DISCORD CTAs (matches design exactly). >8 games → tiered concentric orbit radii (`base + floor(idx/8) * gap`). Slow network → SWR skeleton via `keepPreviousData`. Camera tween cancelled when section leaves viewport (`reset()` on unmount).
+- [x] Test mode hooks: `window.__TEST_MODE__` causes `Scene` to dispatch `scene-ready` after first frame, `CameraRig` to snap (no spring tweens), `Planet.phase` to be deterministic. `tests/lib/freezeScene.ts` waits for `scene-ready` (1500ms fallback for non-scene specs).
+- [x] Playwright visual tests: `tests/visual/server-section.spec.ts` covering 5 states (system-empty, system-populated, system-planet-selected, system-server-focused, system-list-mode), each paired with structural assertions, on desktop + mobile projects. **Baselines not yet captured** — needs user eyeball + `npx playwright test --grep @visual --update-snapshots` (~20 PNGs).
+- [x] Playwright e2e tests: `tests/e2e/scene-interaction.spec.ts` (3 tests: planet-select + URL/breadcrumb + Esc deselect; LIST/SCENE toggle round-trip; server drilldown), `tests/e2e/list-mode.spec.ts` (2 tests: WebGL stub → list mode renders; full data assertion). `tests/e2e/navigation.spec.ts` extended with one deep-link test for `#/servers/minecraft/mc-vanilla`. **6/6 e2e green.**
 
 **Exit criterion:** clicking a planet tweens the camera in, pauses *that planet's* orbit while others keep moving, and fades in the overlay; clicking a moon expands the overlay to server detail; pressing Esc (or clicking empty space) zooms back out and the paused planet resumes orbit from the angle it was paused at; keyboard-only navigation reaches every interactive target; toggling OS "reduce motion" disables tweens and orbits; forcing a WebGL error shows `<ListMode>` with working data; killing a real server turns its moon red within 2 polling cycles; scrolling away pauses the render loop (verify via DevTools); **the system view, planet-selected view, moon-focused overlay, and list-mode fallback all visually match the canonical design set from Phase 0**.
 

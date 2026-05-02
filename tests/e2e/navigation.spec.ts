@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mockApi } from '../lib/mockApi';
 import { freezeScene, waitForReady } from '../lib/freezeScene';
+import populatedServers from '../lib/fixtures/servers-populated.json' with { type: 'json' };
 
 test.describe('hash navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -40,5 +41,19 @@ test.describe('hash navigation', () => {
     await page.goto('/#/join');
     await waitForReady(page);
     await expect(page.locator('#join')).toBeInViewport({ ratio: 0.1 });
+  });
+
+  test('@e2e deep-linking to #/servers/{game}/{server} restores focus + breadcrumb', async ({
+    page,
+  }) => {
+    // Override the empty default with a populated fixture for this case only.
+    await mockApi(page, { servers: populatedServers });
+    await page.goto('/#/servers/minecraft/mc-vanilla');
+    await waitForReady(page);
+
+    const system = page.locator('#system');
+    await expect(system).toBeVisible();
+    await expect(system.locator('.crumb')).toContainText('MINECRAFT');
+    await expect(system.locator('.crumb')).toContainText('VANILLA SMP');
   });
 });

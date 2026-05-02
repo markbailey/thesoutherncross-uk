@@ -18,11 +18,7 @@ function PanelInner<E extends React.ElementType = 'div'>(
 ) {
   const Component = (as ?? 'div') as React.ElementType;
   const merged = ['hud-panel', className].filter(Boolean).join(' ');
-  return (
-    <Component ref={ref} className={merged} {...rest}>
-      {children}
-    </Component>
-  );
+  return React.createElement(Component, { ref, className: merged, ...rest }, children);
 }
 
 export const Panel = React.forwardRef(PanelInner) as <E extends React.ElementType = 'div'>(
