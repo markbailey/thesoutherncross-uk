@@ -1,0 +1,12 @@
+{
+  "name": "The Southern Cross UK",
+  "short_name": "SC·UK",
+  "description": "Guild ops dashboard from orbit — live game server status and Steam roster.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07060c",
+  "theme_color": "#07060c",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
