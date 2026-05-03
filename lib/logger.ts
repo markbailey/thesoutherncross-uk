@@ -12,13 +12,23 @@ function createLogger(): Logger {
   }
 
   const transport = pino.transport({
-    target: 'pino-roll',
-    options: {
-      file: 'logs/app.log',
-      frequency: 'daily',
-      mkdir: true,
-      size: '20m',
-    },
+    targets: [
+      {
+        target: 'pino-pretty',
+        level: LOG_LEVEL,
+        options: { colorize: true, translateTime: 'SYS:HH:MM:ss' },
+      },
+      {
+        target: 'pino-roll',
+        level: LOG_LEVEL,
+        options: {
+          file: 'logs/app.log',
+          frequency: 'daily',
+          mkdir: true,
+          size: '20m',
+        },
+      },
+    ],
   });
 
   return pino({ level: LOG_LEVEL }, transport);

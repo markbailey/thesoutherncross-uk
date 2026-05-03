@@ -30,6 +30,8 @@ async function main(): Promise<void> {
 
   await new Promise<void>((resolve) => {
     server.listen(port, hostname, () => {
+      console.log(`\n  ▲ Next.js (custom server)`);
+      console.log(`  - Local:        http://${hostname}:${port}\n`);
       logger.info({ hostname, port, dev }, 'server listening');
       resolve();
     });
