@@ -1,0 +1,259 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* THE SOUTHERN CROSS UK — HUD tokens */
+:root {
+  /* Brand ramps — three palette variants (swapped at runtime by Tweaks) */
+  --royal-purple: #4b0082;
+  --royal-purple-neon: #7c3aed;
+  --royal-green: #00a86b;
+  --royal-green-neon: #39ff88;
+
+  --space: #07060c;
+  --space-deep: #04030a;
+  --space-soft: #0d0b18;
+
+  --status-online: var(--royal-green-neon);
+  --status-warn: #f0b429;
+  --status-down: #b3264a;
+
+  /* Derived */
+  --ink: #e7e9ee;            /* primary body text */
+  --ink-dim: #8a8ea3;        /* secondary text */
+  --ink-faint: #4a4e62;      /* tertiary / gridlines */
+  --hair: rgba(0, 168, 107, 0.32);   /* hairline royal-green */
+  --hair-p: rgba(124, 58, 237, 0.28); /* hairline royal-purple */
+  --panel: rgba(13, 11, 24, 0.72);
+  --panel-raise: rgba(20, 16, 36, 0.88);
+
+  --bloom: 0 0 12px rgba(57, 255, 136, 0.6), 0 0 28px rgba(57, 255, 136, 0.25);
+  --bloom-purple: 0 0 12px rgba(124, 58, 237, 0.7), 0 0 28px rgba(124, 58, 237, 0.3);
+
+  /* Font stacks defer to next/font-injected CSS variables when present. */
+  --mono: var(--font-mono), 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display: var(--font-display), 'Orbitron', 'Rajdhani', ui-sans-serif, system-ui, sans-serif;
+
+  --cut: 10px;   /* corner cut */
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--space);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── HUD Panel (corner-cut polygon with hairline border) ─────────── */
+.hud-panel {
+  position: relative;
+  background: var(--panel);
+  /* corner-cut polygon */
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+}
+/* Double-panel technique: the border is a slightly larger clipped
+   sibling behind the fill, so you get a hairline on cut edges too. */
+.hud-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  background: linear-gradient(
+    140deg,
+    var(--royal-green) 0%,
+    rgba(0, 168, 107, 0.35) 30%,
+    rgba(124, 58, 237, 0.25) 70%,
+    var(--royal-purple-neon) 100%
+  );
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Scanline overlay — applied to panels/sections when enabled. */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0 1px,
+    transparent 1px 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: var(--scanline-opacity, 0.7);
+}
+
+/* Eyebrow labels — small uppercase HUD text */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.eyebrow.g { color: var(--royal-green-neon); }
+.eyebrow.p { color: var(--royal-purple-neon); }
+
+/* Numeric readout */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Hairline divider */
+.hr-hair { height: 1px; background: var(--hair); border: 0; }
+.hr-hair-p { height: 1px; background: var(--hair-p); border: 0; }
+
+/* Status dots */
+.dot {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  vertical-align: middle;
+}
+.dot.on  { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
+.dot.warn { background: var(--status-warn);  box-shadow: 0 0 8px var(--status-warn); }
+.dot.off { background: var(--status-down);  box-shadow: 0 0 6px var(--status-down); opacity: 0.8; }
+
+/* Status pill */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px 3px 7px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.pill.on   { color: var(--royal-green-neon); }
+.pill.warn { color: var(--status-warn); }
+.pill.off  { color: var(--status-down); }
+.pill.green        { color: var(--royal-green-neon); }
+.pill.purple       { color: var(--royal-purple-neon); }
+.pill.purple-deep  { color: var(--royal-purple-neon); background: rgba(75, 0, 130, 0.18); }
+
+/* Ghost HUD button */
+.hud-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--royal-green-neon);
+  background: rgba(0, 168, 107, 0.06);
+  border: 1px solid var(--hair);
+  padding: 8px 14px;
+  cursor: pointer;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  transition: background .12s ease, color .12s ease, box-shadow .15s ease;
+}
+.hud-btn:hover {
+  background: rgba(57, 255, 136, 0.12);
+  color: var(--royal-green-neon);
+  box-shadow: inset 0 0 12px rgba(57, 255, 136, 0.15), 0 0 14px rgba(57, 255, 136, 0.2);
+}
+.hud-btn.purple { color: var(--royal-purple-neon); background: rgba(124, 58, 237, 0.08); border-color: var(--hair-p); }
+.hud-btn.purple:hover { background: rgba(124, 58, 237, 0.18); box-shadow: inset 0 0 12px rgba(124, 58, 237, 0.2), 0 0 14px rgba(124, 58, 237, 0.25); }
+
+/* Display headings */
+.display {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Starfield container */
+.starfield {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(75, 0, 130, 0.35), transparent 70%),
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(0, 168, 107, 0.10), transparent 70%),
+    var(--space);
+}
+.starfield canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Subtle bloom helpers */
+.glow-g { filter: drop-shadow(0 0 6px rgba(57, 255, 136, 0.6)); }
+.glow-p { filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.7)); }
+
+/* Hover row */
+.row:hover { background: rgba(124, 58, 237, 0.06); }
+
+/* Sparkline tooltip cursor helpers */
+.spark-cursor { stroke: var(--royal-green-neon); stroke-width: 1; stroke-dasharray: 2 3; }
+
+/* Breadcrumb / nav links */
+.crumb {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.crumb b { color: var(--ink); font-weight: 500; }
+.crumb .sep { color: var(--ink-faint); margin: 0 8px; }
+
+/* ── Keyframes for HUD motion primitives ──────────────────────────── */
+@keyframes orbitPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.9; }
+}
+
+@keyframes termLine {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  to { visibility: hidden; }
+}
+
+@keyframes antennaBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+.astronaut-antenna {
+  animation: antennaBlink 2.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Honour OS-level "reduce motion" for every animation + transition the site
+   emits. Components that gate JS animations themselves (Starfield rAF loop,
+   JoinSection boot-log stagger) still do so — this is the safety net. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

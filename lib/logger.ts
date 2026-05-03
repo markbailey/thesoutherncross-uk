@@ -1,0 +1,47 @@
+// Pino logger with daily rotating file transport via pino-roll.
+// In test env we write to a silent destination so vitest doesn't spam logs/.
+
+import pino, { type Logger } from 'pino';
+
+const LOG_LEVEL = process.env['LOG_LEVEL'] ?? 'info';
+const isTest = process.env['NODE_ENV'] === 'test';
+const isProd = process.env['NODE_ENV'] === 'production';
+
+function createLogger(): Logger {
+  if (isTest) {
+    return pino({ level: 'silent' });
+  }
+
+  // pino-pretty lives in devDependencies — omit it in production so
+  // `npm ci --omit=dev` deploys don't crash trying to load the transport.
+  const transport = pino.transport({
+    targets: [
+      ...(isProd
+        ? []
+        : [
+            {
+              target: 'pino-pretty',
+              level: LOG_LEVEL,
+              options: { colorize: true, translateTime: 'SYS:HH:MM:ss' },
+            },
+          ]),
+      {
+        target: 'pino-roll',
+        level: LOG_LEVEL,
+        options: {
+          file: 'logs/app.log',
+          frequency: 'daily',
+          mkdir: true,
+          size: '20m',
+        },
+      },
+    ],
+  });
+  return pino({ level: LOG_LEVEL }, transport);
+}
+
+export const logger: Logger = createLogger();
+
+export function childLogger(bindings: Record<string, unknown>): Logger {
+  return logger.child(bindings);
+}

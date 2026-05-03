@@ -1,0 +1,72 @@
+{
+  "members": [
+    {
+      "steamid": "76561197960287930",
+      "persona": "OPS_Orion",
+      "avatar": null,
+      "state": 1,
+      "game": { "id": "730", "name": "COUNTER-STRIKE 2" },
+      "lastLogoff": null,
+      "role": "founder"
+    },
+    {
+      "steamid": "76561198023456789",
+      "persona": "RelayVega",
+      "avatar": null,
+      "state": 1,
+      "game": null,
+      "lastLogoff": null,
+      "role": "officer"
+    },
+    {
+      "steamid": "76561198100200300",
+      "persona": "AXIS_Nyx",
+      "avatar": null,
+      "state": 0,
+      "game": null,
+      "lastLogoff": 1745480000
+    },
+    {
+      "steamid": "76561198111222333",
+      "persona": "Skyward_07",
+      "avatar": null,
+      "state": 1,
+      "game": { "id": "252490", "name": "RUST" },
+      "lastLogoff": null
+    },
+    {
+      "steamid": "76561198200300400",
+      "persona": "BootlaceMcFly",
+      "avatar": null,
+      "state": 0,
+      "game": null,
+      "lastLogoff": 1745400000
+    },
+    {
+      "steamid": "76561198300400500",
+      "persona": "Kestrel",
+      "avatar": null,
+      "state": 1,
+      "game": { "id": "304930", "name": "UNTURNED" },
+      "lastLogoff": null
+    },
+    {
+      "steamid": "76561198400500600",
+      "persona": "Lintrunner",
+      "avatar": null,
+      "state": 1,
+      "game": null,
+      "lastLogoff": null
+    },
+    {
+      "steamid": "76561198500600700",
+      "persona": "Calico",
+      "avatar": null,
+      "state": 0,
+      "game": null,
+      "lastLogoff": 1745200000
+    }
+  ],
+  "stale": false,
+  "updatedAt": 1745500000000
+}
