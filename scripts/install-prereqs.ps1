@@ -14,16 +14,21 @@ New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 function Test-Cmd { param($name) [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
 # --- 1. Node.js 22 LTS ----------------------------------------------------
-if (Test-Cmd node) {
-    "node already installed: " + (& node --version)
+$nodeExe = 'C:\Program Files\nodejs\node.exe'
+if (Test-Path $nodeExe) {
+    'node already installed: ' + (& $nodeExe --version)
+    if ($env:Path -notlike '*nodejs*') { $env:Path += ';C:\Program Files\nodejs' }
 } else {
     'Installing Node.js 22 LTS...'
     $nodeMsi = "$tmp\node-lts.msi"
     Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.13.1/node-v22.13.1-x64.msi' -OutFile $nodeMsi
     Start-Process msiexec.exe -ArgumentList "/i `"$nodeMsi`" /qn /norestart" -Wait
-    # refresh PATH for this session
-    $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
-    'node installed: ' + (& node --version)
+    if (Test-Path $nodeExe) {
+        $env:Path += ';C:\Program Files\nodejs'
+        'node installed: ' + (& $nodeExe --version)
+    } else {
+        Write-Warning 'node.exe not found at C:\Program Files\nodejs after MSI — open a NEW PowerShell after this script finishes.'
+    }
 }
 
 # --- 2. IIS Application Request Routing 3.0 ------------------------------
