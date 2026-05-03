@@ -67,28 +67,21 @@ export function CameraRig({ planetPositions, moonPositions, snap = false }: Came
     },
   }));
 
-  React.useEffect(() => {
-    const tick = () => {
-      const { pos, look } = computeTarget();
-      if (snap) {
-        // Drain any in-flight spring animation so the snap is a true jump, not a
-        // race between api.set() and a still-running api.start() from a prior tick.
-        api.stop();
-        targetRef.current.set(pos[0], pos[1], pos[2]);
-        lookAtRef.current.set(look[0], look[1], look[2]);
-        api.set({ px: pos[0], py: pos[1], pz: pos[2], lx: look[0], ly: look[1], lz: look[2] });
-        return;
-      }
-      api.start({ px: pos[0], py: pos[1], pz: pos[2], lx: look[0], ly: look[1], lz: look[2] });
-    };
-    tick();
-    // Re-target every animation frame while focused so camera tracks moving planets.
-    if (view === 'system') return;
-    const id = window.setInterval(tick, 80);
-    return () => window.clearInterval(id);
-  }, [view, focusedGameId, focusedServerId, snap, api, computeTarget]);
-
+  // Retarget + apply inside useFrame so we naturally inherit the canvas's
+  // frameloop gating: when `useSceneVisibility` flips frameloop to 'demand'
+  // (off-screen / tab hidden), this stops firing — no setInterval drift, no
+  // CPU burn, no spring physics drifting silently behind a hidden canvas.
   useFrame(() => {
+    const { pos, look } = computeTarget();
+    if (snap) {
+      // Drain any in-flight spring so the snap is a clean jump.
+      api.stop();
+      targetRef.current.set(pos[0], pos[1], pos[2]);
+      lookAtRef.current.set(look[0], look[1], look[2]);
+      api.set({ px: pos[0], py: pos[1], pz: pos[2], lx: look[0], ly: look[1], lz: look[2] });
+    } else {
+      api.start({ px: pos[0], py: pos[1], pz: pos[2], lx: look[0], ly: look[1], lz: look[2] });
+    }
     camera.position.copy(targetRef.current);
     tmpVec.copy(lookAtRef.current);
     camera.lookAt(tmpVec);

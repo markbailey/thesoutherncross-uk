@@ -94,9 +94,10 @@ function chunk<T>(arr: readonly T[], size: number): T[][] {
 }
 
 // Avatar URLs are rendered client-side as <img src={...}>. Only accept Steam's
-// known CDN origins so a corrupted upstream response (or MITM before Phase 5's
-// CSP lands) can't slip an arbitrary remote URL into every page load.
-const ALLOWED_AVATAR_HOSTS = /^https?:\/\/(?:[^/]*\.)?(?:akamaihd\.net|steamstatic\.com)\//i;
+// known CDN origins over HTTPS so a corrupted upstream response (or MITM before
+// Phase 5's CSP lands) can't slip an arbitrary remote URL into every page load.
+// HTTPS-only also avoids mixed-content blocks under the production TLS deploy.
+const ALLOWED_AVATAR_HOSTS = /^https:\/\/(?:[^/]*\.)?(?:akamaihd\.net|steamstatic\.com)\//i;
 
 function safeAvatar(raw: unknown): string {
   if (typeof raw !== 'string') return '';

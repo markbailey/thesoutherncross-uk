@@ -163,16 +163,21 @@ function PlanetWithTracker({
   planetPositions,
   moonPositions,
 }: PlanetWithTrackerProps) {
+  // Reuse a stable Vector3 per id; mutate in place each frame so we don't
+  // allocate ~24 vectors/frame at 60fps with a populated system.
   const onPositionChange = React.useCallback(
     (pos: THREE.Vector3) => {
-      planetPositions.current.set(gameId, pos.clone());
+      const existing = planetPositions.current.get(gameId);
+      if (existing) existing.copy(pos);
+      else planetPositions.current.set(gameId, pos.clone());
     },
     [gameId, planetPositions],
   );
   const onMoonPosition = React.useCallback(
     (serverId: string, pos: THREE.Vector3) => {
-      // Cache a clone so consumers (CameraRig) can hold the value across frames.
-      moonPositions.current.set(serverId, pos.clone());
+      const existing = moonPositions.current.get(serverId);
+      if (existing) existing.copy(pos);
+      else moonPositions.current.set(serverId, pos.clone());
     },
     [moonPositions],
   );

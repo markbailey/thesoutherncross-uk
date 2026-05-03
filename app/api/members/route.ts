@@ -32,7 +32,11 @@ export function GET(): Response {
     const stale = getMetaFlag('members.stale');
 
     if (rows.length === 0) {
-      return jsonNoStore({ members: [], stale: false, updatedAt: null });
+      // Surface the stale flag even when empty — a Steam refresh that fails
+      // before any successful write leaves rows=0 + stale=true, and the UI
+      // needs that signal to render the "stale data" chip rather than a clean
+      // empty state.
+      return jsonNoStore({ members: [], stale, updatedAt: null });
     }
 
     let mostRecent = 0;
