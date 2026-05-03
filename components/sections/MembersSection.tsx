@@ -42,24 +42,54 @@ export function MembersSection() {
     revalidateOnFocus: false,
   });
 
-  // Deep-link highlight: #/members/{steamid}
+  // Deep-link highlight: #/members/{steamid}. One-shot per hash via ref so
+  // SWR's 60s refetch can't re-scroll/re-pulse while the user is browsing.
+  // Re-runs when (a) the hash changes, or (b) data first arrives and the
+  // target card finally exists in the DOM. The pulse-removal timer is hoisted
+  // out of the effect so an SWR-driven re-run mid-pulse won't strand the
+  // `data-highlight` attribute on the card.
+  const highlightedHash = React.useRef<string | null>(null);
+  const pulseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => {
-    if (typeof window === 'undefined' || !data) return;
-    const hash = window.location.hash;
-    const m = hash.match(/^#\/?members\/([^/]+)$/);
-    if (!m) return;
-    const steamid = m[1];
-    if (!steamid) return;
+    if (typeof window === 'undefined') return;
 
-    const card = document.querySelector<HTMLElement>(
-      `[data-steamid="${CSS.escape(steamid)}"]`,
-    );
-    if (!card) return;
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    card.setAttribute('data-highlight', 'true');
-    const timer = setTimeout(() => card.removeAttribute('data-highlight'), 2000);
-    return () => clearTimeout(timer);
+    const tryHighlight = () => {
+      const hash = window.location.hash;
+      const m = hash.match(/^#\/?members\/([^/]+)$/);
+      if (!m) {
+        highlightedHash.current = null;
+        return;
+      }
+      if (highlightedHash.current === hash) return;
+      const steamid = m[1];
+      if (!steamid) return;
+
+      const card = document.querySelector<HTMLElement>(
+        `[data-steamid="${CSS.escape(steamid)}"]`,
+      );
+      if (!card) return; // wait for data to land; effect will re-run when it does
+      highlightedHash.current = hash;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.setAttribute('data-highlight', 'true');
+      if (pulseTimer.current) clearTimeout(pulseTimer.current);
+      pulseTimer.current = setTimeout(() => {
+        card.removeAttribute('data-highlight');
+        pulseTimer.current = null;
+      }, 2000);
+    };
+
+    tryHighlight();
+    window.addEventListener('hashchange', tryHighlight);
+    return () => {
+      window.removeEventListener('hashchange', tryHighlight);
+    };
   }, [data]);
+
+  React.useEffect(() => {
+    return () => {
+      if (pulseTimer.current) clearTimeout(pulseTimer.current);
+    };
+  }, []);
 
   return (
     <section

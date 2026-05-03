@@ -58,9 +58,13 @@ export function useActiveSection(sectionIds: readonly string[]): string | null {
           activeRef.current = best;
           setActive(best);
           const sinceHashNav = performance.now() - hashNavState.lastHashNavAt;
-          if (sinceHashNav > 500) {
+          // Don't clobber route-style hashes (`#/servers/...`, `#/members/...`)
+          // owned by SystemSection / useHashSection — they encode focus state
+          // the bare scroll-spy doesn't know about.
+          const currentHash = window.location.hash;
+          if (sinceHashNav > 500 && !currentHash.startsWith('#/')) {
             const nextHash = `#${best}`;
-            if (window.location.hash !== nextHash) {
+            if (currentHash !== nextHash) {
               window.history.replaceState(null, '', nextHash);
             }
           }

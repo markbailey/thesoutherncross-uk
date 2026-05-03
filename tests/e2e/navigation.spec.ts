@@ -56,4 +56,16 @@ test.describe('hash navigation', () => {
     await expect(system.locator('.crumb')).toContainText('MINECRAFT');
     await expect(system.locator('.crumb')).toContainText('VANILLA SMP');
   });
+
+  test('scroll-spy does not clobber a route-style hash', async ({ page }) => {
+    // System section's `#/servers/{game}/{server}` hash must survive the
+    // IntersectionObserver-driven scroll-spy in useActiveSection.
+    await mockApi(page, { servers: populatedServers });
+    await page.goto('/#/servers/minecraft/mc-vanilla');
+    await waitForReady(page);
+
+    // Wait past useActiveSection's 500ms post-hashNav debounce so the spy is live.
+    await page.waitForTimeout(700);
+    await expect(page).toHaveURL(/#\/servers\/minecraft\/mc-vanilla$/);
+  });
 });
