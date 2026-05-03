@@ -78,7 +78,7 @@ export const GUILD: Guild = {
     'Admin calls on bans and server rules are final. Appeal once in DMs if you disagree.',
   ],
   comms: {
-    voice: { label: 'Discord', href: 'https://discord.gg/Kjp728qq' },
+    voice: { label: 'Discord', href: 'https://discord.gg/gBmECbGW4Z' },
     lfg: { label: 'Steam Group', href: 'https://steamcommunity.com/groups/TheSouthernCrossUK' },
     hours: 'Peak hours 19:00–23:00 UK, most nights.',
     tenure: 'Core crew together since 2015.',
@@ -102,7 +102,7 @@ export const GUILD: Guild = {
       'Play something we host, at least occasionally. No activity quota.',
     ],
     steamGroupUrl: 'https://steamcommunity.com/groups/TheSouthernCrossUK',
-    discordInviteUrl: 'https://discord.gg/Kjp728qq',
+    discordInviteUrl: 'https://discord.gg/gBmECbGW4Z',
   },
   footer: {
     coords: 'EU-WEST · 51.5N 0.1W',
