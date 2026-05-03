@@ -27,9 +27,9 @@ try {
 }
 "ARRproxy: $arrProxy"
 
-$nssmOut = (& nssm version 2>&1)
-$nssm = ($nssmOut | Select-Object -First 1)
-"nssm:     " + $(if ($nssm -and $nssm -notmatch 'not recognized|CommandNotFoundException') { $nssm } else { 'MISSING' })
+$nssmPaths = @('C:\nssm\nssm.exe','C:\Program Files\nssm\nssm.exe','C:\tools\nssm\nssm.exe')
+$nssmExe = $nssmPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+"nssm:     " + $(if ($nssmExe) { $nssmExe } else { 'MISSING' })
 
 $paths = @('C:\win-acme\wacs.exe','C:\Program Files\win-acme\wacs.exe','C:\tools\win-acme\wacs.exe')
 $wacs = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
