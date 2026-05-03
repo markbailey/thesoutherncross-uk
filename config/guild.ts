@@ -33,7 +33,7 @@ export type GuildFooter = {
 };
 
 export type GuildRoles = {
-  founder: string;
+  founders: readonly string[];
   officers: readonly string[];
   moderators: readonly string[];
 };
@@ -110,8 +110,10 @@ export const GUILD: Guild = {
   },
   // Why: hardcoded rather than scraped on each poll — leadership rarely changes; edit here when it does.
   roles: {
-    founder: '76561198051971258',
-    officers: ['76561198084744484', '76561198010234134', '76561198077248762'],
+    // solusmoth, Fish
+    founders: ['76561198051971258', '76561198010234134'],
+    // Stompie, InsanityXL, Eagle
+    officers: ['76561198077248762', '76561197985898467', '76561198001701877'],
     moderators: [],
   },
 } as const;
