@@ -2,6 +2,9 @@
 // the in-process poller so /api/servers and /api/members have data to serve.
 // See plan — Phase 1: "server.ts custom server that boots Next and calls poller.start()".
 
+// MUST be first: loads .env into process.env before poller's defaultPoller reads it.
+import './env';
+
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import next from 'next';
 import { closeDb } from './lib/db';
