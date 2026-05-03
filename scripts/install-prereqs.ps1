@@ -13,6 +13,21 @@ New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
 function Test-Cmd { param($name) [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
+# Download with retry — nssm.cc in particular returns 503 frequently.
+function Get-FileWithRetry {
+    param([string]$Uri, [string]$OutFile, [int]$MaxAttempts = 4)
+    for ($i = 1; $i -le $MaxAttempts; $i++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing
+            return $true
+        } catch {
+            Write-Warning "  attempt ${i}/${MaxAttempts} failed for $Uri : $($_.Exception.Message)"
+            if ($i -lt $MaxAttempts) { Start-Sleep -Seconds (5 * $i) }
+        }
+    }
+    return $false
+}
+
 # --- 1. Node.js 22 LTS ----------------------------------------------------
 $nodeExe = 'C:\Program Files\nodejs\node.exe'
 if (Test-Path $nodeExe) {
@@ -67,7 +82,18 @@ if (Test-Path $nssmExe) {
 } else {
     'Installing nssm 2.24...'
     $nssmZip = "$tmp\nssm.zip"
-    Invoke-WebRequest -Uri 'https://nssm.cc/release/nssm-2.24.zip' -OutFile $nssmZip
+    # Manual fallback: if a pre-downloaded nssm-2.24.zip is in C:\Temp, use it.
+    $manual = 'C:\Temp\nssm-2.24.zip'
+    if (Test-Path $manual) {
+        Copy-Item $manual $nssmZip -Force
+        'using pre-downloaded nssm-2.24.zip from C:\Temp'
+    } else {
+        $ok = Get-FileWithRetry -Uri 'https://nssm.cc/release/nssm-2.24.zip' -OutFile $nssmZip
+        if (-not $ok) {
+            Write-Warning 'nssm.cc unreachable. Manually download https://nssm.cc/release/nssm-2.24.zip in a browser, save it as C:\Temp\nssm-2.24.zip, and re-run this script.'
+            return
+        }
+    }
     Expand-Archive -Path $nssmZip -DestinationPath $tmp -Force
     New-Item -ItemType Directory -Force -Path $nssmDir | Out-Null
     Copy-Item "$tmp\nssm-2.24\win64\nssm.exe" $nssmExe -Force
@@ -88,7 +114,11 @@ if (Test-Path $wacsExe) {
 } else {
     'Installing win-acme...'
     $wacsZip = "$tmp\wacs.zip"
-    Invoke-WebRequest -Uri 'https://github.com/win-acme/win-acme/releases/download/v2.2.9.1701/win-acme.v2.2.9.1701.x64.pluggable.zip' -OutFile $wacsZip
+    $ok = Get-FileWithRetry -Uri 'https://github.com/win-acme/win-acme/releases/download/v2.2.9.1701/win-acme.v2.2.9.1701.x64.pluggable.zip' -OutFile $wacsZip
+    if (-not $ok) {
+        Write-Warning 'win-acme download failed. Manually grab the .x64.pluggable.zip from the win-acme releases page and place it at C:\Temp\wacs.zip, then re-run.'
+        return
+    }
     New-Item -ItemType Directory -Force -Path $wacsDir | Out-Null
     Expand-Archive -Path $wacsZip -DestinationPath $wacsDir -Force
     'win-acme installed at ' + $wacsExe
