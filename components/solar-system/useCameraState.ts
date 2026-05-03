@@ -10,8 +10,6 @@ export interface CameraState {
   focusedServerId: string | null;
   /** gameIds whose orbit is frozen — Set so multiple selections compose. */
   pausedOrbits: Set<string>;
-  /** Last-recorded angle (radians) per gameId; used to resume from pause. */
-  pausedAngles: Record<string, number>;
   listMode: boolean;
 
   selectPlanet: (gameId: string) => void;
@@ -22,7 +20,6 @@ export interface CameraState {
   reset: () => void;
   toggleListMode: () => void;
   setListMode: (on: boolean) => void;
-  recordOrbitAngle: (gameId: string, angle: number) => void;
 }
 
 export const useCameraState = create<CameraState>((set) => ({
@@ -30,7 +27,6 @@ export const useCameraState = create<CameraState>((set) => ({
   focusedGameId: null,
   focusedServerId: null,
   pausedOrbits: new Set<string>(),
-  pausedAngles: {},
   listMode: false,
 
   selectPlanet: (gameId) =>
@@ -88,7 +84,4 @@ export const useCameraState = create<CameraState>((set) => ({
 
   toggleListMode: () => set((s) => ({ listMode: !s.listMode })),
   setListMode: (on) => set({ listMode: on }),
-
-  recordOrbitAngle: (gameId, angle) =>
-    set((s) => ({ pausedAngles: { ...s.pausedAngles, [gameId]: angle } })),
 }));

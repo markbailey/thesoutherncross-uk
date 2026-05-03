@@ -14,16 +14,16 @@ export type MockApiOptions = {
 };
 
 export async function mockApi(page: Page, options: MockApiOptions = {}): Promise<void> {
-  await page.route('**/api/members', (route) => {
-    route.fulfill({
+  await page.route('**/api/members', async (route) => {
+    await route.fulfill({
       status: options.membersStatus ?? 200,
       contentType: 'application/json',
       headers: { 'Cache-Control': 'no-store' },
       body: JSON.stringify(options.members ?? membersFixture),
     });
   });
-  await page.route('**/api/servers', (route) => {
-    route.fulfill({
+  await page.route('**/api/servers', async (route) => {
+    await route.fulfill({
       status: options.serversStatus ?? 200,
       contentType: 'application/json',
       headers: { 'Cache-Control': 'no-store' },
@@ -32,8 +32,8 @@ export async function mockApi(page: Page, options: MockApiOptions = {}): Promise
   });
   // /api/health always OK under test — the webServer gate in playwright.config.ts
   // already waits for the real endpoint, so this is belt-and-braces for screenshots.
-  await page.route('**/api/health', (route) => {
-    route.fulfill({
+  await page.route('**/api/health', async (route) => {
+    await route.fulfill({
       status: 200,
       contentType: 'application/json',
       headers: { 'Cache-Control': 'no-store' },
