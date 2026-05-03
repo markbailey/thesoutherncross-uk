@@ -29,12 +29,12 @@ test.describe('@e2e scene interaction', () => {
     await expect(system.getByRole('button', { name: 'ZOOM OUT' })).toBeVisible();
 
     // Esc steps back out one level — view returns to 'system' so ZOOM OUT
-    // disappears and the breadcrumb's game-name segment is gone.
-    // (NOTE: the hash sync effect only writes when view ≠ 'system', so the
-    // URL fragment is not actively cleared on deselect — see report.)
+    // disappears, the breadcrumb's game-name segment is gone, and the
+    // hash-sync effect strips any lingering #/servers/... fragment.
     await page.keyboard.press('Escape');
     await expect(system.getByRole('button', { name: 'ZOOM OUT' })).toHaveCount(0);
     await expect(system.locator('.crumb')).not.toContainText('MINECRAFT');
+    await expect(page).not.toHaveURL(/#\/servers\//);
   });
 
   test('LIST toggle round-trips between scene and list mode', async ({ page }) => {

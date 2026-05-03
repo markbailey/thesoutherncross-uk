@@ -32,8 +32,9 @@ function handle(req: NextRequest): Response {
     );
   }
 
-  const url = new URL(req.url);
-  const provided = url.searchParams.get('secret') ?? '';
+  // Secret travels in `x-refresh-secret` only — query strings leak via proxy
+  // access logs, browser history, and the Referer header.
+  const provided = req.headers.get('x-refresh-secret') ?? '';
   if (!timingSafeEquals(provided, expected)) {
     return jsonNoStore({ error: 'unauthorized' }, { status: 401 });
   }

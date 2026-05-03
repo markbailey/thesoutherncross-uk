@@ -4,7 +4,7 @@ import * as React from 'react';
 
 export type HashSection =
   | { section: 'hero' | 'about' | 'system' | 'members' | 'join'; subpath: null }
-  | { section: 'servers'; subpath: { game: string; server: string } }
+  | { section: 'servers'; subpath: { game: string; server: string | null } }
   | { section: 'members-deep'; subpath: { steamid: string } }
   | null;
 
@@ -75,12 +75,13 @@ export function useHashSection(): HashSection {
 }
 
 function parseHash(raw: string): HashSection {
-  // /servers/{game}/{server}
-  const serverMatch = raw.match(/^\/?servers\/([^/]+)\/([^/]+)$/);
+  // /servers/{game}[/{server}] — server segment is optional; SystemSection
+  // writes `#/servers/{game}` when only a planet is focused.
+  const serverMatch = raw.match(/^\/?servers\/([^/]+)(?:\/([^/]+))?$/);
   if (serverMatch) {
     return {
       section: 'servers',
-      subpath: { game: serverMatch[1]!, server: serverMatch[2]! },
+      subpath: { game: serverMatch[1]!, server: serverMatch[2] ?? null },
     };
   }
   // /members/{steamid}
