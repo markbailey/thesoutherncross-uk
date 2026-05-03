@@ -90,6 +90,44 @@ foreach ($var in @('HTTP_X_FORWARDED_HOST','HTTP_X_FORWARDED_PROTO','HTTP_X_FORW
     }
 }
 
+# Harden Schannel: disable TLS 1.0/1.1 + SSL 2/3, enforce TLS 1.2.
+# Modern browsers flag sites accepting TLS <=1.1 as "not secure" even if the
+# actual handshake uses 1.2. Server 2019 Schannel does NOT support TLS 1.3
+# (added in Server 2022), so 1.2-only is the best we can do.
+# Reboot required for Schannel to re-read these registry values.
+'Hardening Schannel: disabling TLS 1.0/1.1 + SSL 2/3, enabling TLS 1.2...'
+$schannel = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols'
+$rebootRequired = $false
+foreach ($proto in 'TLS 1.0','TLS 1.1','SSL 2.0','SSL 3.0') {
+    foreach ($side in 'Server','Client') {
+        $path = "$schannel\$proto\$side"
+        $existing = Get-ItemProperty -Path $path -Name Enabled -ErrorAction SilentlyContinue
+        if (-not $existing -or $existing.Enabled -ne 0) {
+            New-Item -Path $path -Force | Out-Null
+            New-ItemProperty -Path $path -Name Enabled -Value 0 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -Path $path -Name DisabledByDefault -Value 1 -PropertyType DWord -Force | Out-Null
+            "  $proto $side disabled"
+            $rebootRequired = $true
+        }
+    }
+}
+foreach ($side in 'Server','Client') {
+    $path = "$schannel\TLS 1.2\$side"
+    $existing = Get-ItemProperty -Path $path -Name Enabled -ErrorAction SilentlyContinue
+    if (-not $existing -or $existing.Enabled -ne 1) {
+        New-Item -Path $path -Force | Out-Null
+        New-ItemProperty -Path $path -Name Enabled -Value 1 -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $path -Name DisabledByDefault -Value 0 -PropertyType DWord -Force | Out-Null
+        "  TLS 1.2 $side enabled"
+        $rebootRequired = $true
+    }
+}
+if ($rebootRequired) {
+    Write-Warning 'Schannel registry was modified. REBOOT REQUIRED for changes to take effect: Restart-Computer -Force'
+} else {
+    '  Schannel already hardened'
+}
+
 # --- 3. nssm (service supervisor) ----------------------------------------
 $nssmDir = 'C:\nssm'
 $nssmExe = "$nssmDir\nssm.exe"
