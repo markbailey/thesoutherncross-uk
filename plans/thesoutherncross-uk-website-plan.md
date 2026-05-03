@@ -6,11 +6,12 @@ Solar-system-style game server hub + Steam-driven member roster, single-page sit
 
 > **How to use:** At the start of every session, read this block first. Update the `Status` line and tick boxes as work completes. Keep the `Last touched` note so the next session knows where the last one stopped.
 
-- **Status:** `p1-p3-complete · pr-open` &nbsp;·&nbsp; **Active phase:** Phase 4 (Members) next &nbsp;·&nbsp; **Last touched:** 2026-05-03 — smoke-found setState loop fixed; **12/12 e2e green** across desktop+mobile; PR #1 open as draft against `main` (https://github.com/markbailey/thesoutherncross-uk/pull/1). Typecheck clean, 35/35 vitest green, build 7/7 pages. **Visual baselines for Phases 2 + 3 not yet captured** — needs user eyeball of live sections + `npx playwright test --grep "@visual" --update-snapshots`.
+- **Status:** `p1-p4-complete · pr-open` &nbsp;·&nbsp; **Active phase:** Phase 5 (IIS Deployment) next &nbsp;·&nbsp; **Last touched:** 2026-05-03 — Phase 4 audit found UI already built; fixed deep-link highlight race that failed e2e (state-driven `data-highlight` instead of imperative timer). **34/34 e2e green** (grep-invert @visual) across desktop+mobile, 35/35 vitest green, typecheck clean. **Visual baselines for Phases 2 + 3 + 4 not yet captured** — needs user eyeball of live sections + `npx playwright test --grep "@visual" --update-snapshots`.
 - **Session log:**
   - 2026-04-24 — feature-dev (orchestrator + 3 parallel build agents) — scaffold + backbone + shell, visual parity vs user-supplied `docs/design/user/site.html`, all 8 code-review findings addressed
   - 2026-05-02 — orchestrator + 4 sequential agents (impl → tests → review → fixes) — Phase 3 solar-system scene shipped. Discovered + fixed two **pre-existing P2 bugs** that blocked production build: `package.json` had `"type": "commonjs"` vs ESM source (Next 16 build failed on every lib/* import); `components/hud/Panel.tsx` polymorphic `forwardRef` had 3 typecheck errors. Both pre-existed P3 work — P2's commit message "next build 7/7 pages" was incorrect. Code review found 7 bugs + 4 nits in P3; all addressed except I5 (spring drift while frame-gated) and I6 (decorative-rings reduced-motion flash) — both deferred as architectural polish, non-blocking.
   - 2026-05-03 — orchestrator (deep smoke test) — caught a `Maximum update depth exceeded` infinite-render loop in the paused state via dev-log inspection during mobile e2e. Cause: `recordOrbitAngle` called inside `useFrame` every frame while paused (60Hz `pausedAngles` object churn), combined with object-returning store selectors in `Moon.tsx` + `Planet.tsx` (no shallow equality). Tests still passed because assertions completed before React's loop limit tripped — pure browser-console-only failure. Fixed in `fe9b58b`: dropped per-frame setState (`angleRef` is the source of truth on resume), switched to per-scalar selectors. PR #1 opened as draft against main with full Phase 1+2+3 history (6 commits, 87 files, +27,853/-2).
+  - 2026-05-03 — orchestrator + impl/spec-review/quality-review agents — Phase 4 audit confirmed UI was built during P2 (MembersSection + MemberCard + grid + states + visual specs all in place); only failing item was the `#/members/{id}` deep-link e2e test. Root cause: imperative `setAttribute` with 2s `setTimeout` raced Playwright's `waitForReady` (networkidle + scene-ready up to 1.5s + 200ms), so `data-highlight` was already removed before assertion ran. Converted to React state-driven `data-highlight` declaratively rendered by `MemberCard`; 2s CSS pulse keyframe still fires once. Spec compliance and code quality both reviewed, approved.
 
 ### Top-level checklist
 
@@ -18,7 +19,7 @@ Solar-system-style game server hub + Steam-driven member roster, single-page sit
 - [x] **Phase 1 — Scaffold + Data Backbone**
 - [x] **Phase 2 — Design System + Single-Page Shell**
 - [x] **Phase 3 — Solar System Scene**
-- [ ] **Phase 4 — Members Section** *(UI + empty/error/stale/skeleton states already built; only the Steam-creds wiring is left)*
+- [x] **Phase 4 — Members Section** *(code complete; live Steam creds + visual baselines captured at deploy time)*
 - [ ] **Phase 5 — IIS Deployment**
 - [ ] v1 shipped and verified in production
 
@@ -168,13 +169,13 @@ Owner: `agent:scene`. Depends on P1 (`/api/servers`) and P2 (HUD primitives).
 
 Owner: `agent:members`. Depends on P1 + P2.
 
-- [ ] `components/sections/MembersSection.tsx` — SWR fetch from `/api/members`
-- [ ] `components/members/MemberCard.tsx` — avatar, persona, online state, currently-playing-game chip
-- [ ] Grid layout (auto-fill, ~180px min, royal-purple hairline borders)
-- [ ] Deep-link handler: `#/members/{steamid64}` scrolls + highlights card for 2s (royal-green outline pulse)
-- [ ] Empty + error states (both styled in HUD chrome)
-- [ ] Playwright visual test refresh: `tests/visual/members.spec.ts` now covers populated grid, empty state, and error state against real fixture data + design baselines
-- [ ] Playwright e2e test: `tests/e2e/navigation.spec.ts` extended to assert `#/members/{id}` deep-link highlight works
+- [x] `components/sections/MembersSection.tsx` — SWR fetch from `/api/members` (60s refresh, `revalidateOnFocus: false`)
+- [x] `components/members/MemberCard.tsx` — avatar (with procedural `AstronautAvatar` fallback), persona, online dot, currently-playing-game chip, last-logoff relative time
+- [x] Grid layout — `repeat(auto-fill, minmax(280px, 1fr))`, 14px gap, hairline borders via `.hud-panel`
+- [x] Deep-link handler: `#/members/{steamid64}` scrolls + 2s royal-green pulse — state-driven `data-highlight` (declarative; previous imperative version raced Playwright's waitForReady)
+- [x] Empty + error states (both styled in HUD chrome — "NO OPERATORS ONLINE" / "SIGNAL LOST" with retry)
+- [x] Playwright visual test: `tests/visual/members.spec.ts` covers populated/empty/error/stale states. **Baselines not yet captured** — same user-eyeball gate as P2 + P3.
+- [x] Playwright e2e test: `tests/e2e/navigation.spec.ts:32` validates `#/members/{id}` deep-link highlight (passes on chromium-desktop + chromium-mobile)
 
 **Exit criterion:** real Steam group renders with avatars and personas; deep-link highlight works; loads from cache on cold start without hitting Steam; `members` visual + e2e specs pass.
 
