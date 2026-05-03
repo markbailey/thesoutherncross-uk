@@ -40,6 +40,11 @@ PowerShell -ExecutionPolicy Bypass -File .\scripts\install-prereqs.ps1
 
 then re-run the check.
 
+`install-prereqs.ps1` also allowlists the URL Rewrite server variables
+(`HTTP_X_FORWARDED_HOST`, `HTTP_X_FORWARDED_PROTO`, `HTTP_X_FORWARDED_FOR`,
+`HTTP_X_REAL_IP`) that the proxy rule in `web.config` needs to set.
+Without them, IIS returns `500.50 URL Rewrite Module Error`.
+
 ### 2. Bind the public hostname to Default Web Site
 
 ```powershell

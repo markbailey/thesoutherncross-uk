@@ -74,6 +74,22 @@ if ($cfg.enabled -ne $true) {
     'ARR proxy already enabled.'
 }
 
+# URL Rewrite locks down which HTTP_* server variables a rule can set; the
+# proxy rule in web.config sets X-Forwarded-* + X-Real-IP so node sees the
+# real client. Each variable must be on the allowed list at apphost level.
+'Allowlisting forwarded-header server variables for URL Rewrite...'
+$appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
+foreach ($var in @('HTTP_X_FORWARDED_HOST','HTTP_X_FORWARDED_PROTO','HTTP_X_FORWARDED_FOR','HTTP_X_REAL_IP')) {
+    # appcmd is idempotent if you guard against duplicates; check first.
+    $existing = & $appcmd list config /section:system.webServer/rewrite/allowedServerVariables 2>&1 | Select-String -Pattern "name=`"$var`""
+    if ($existing) {
+        "  $var already allowed"
+    } else {
+        & $appcmd set config -section:system.webServer/rewrite/allowedServerVariables "/+[name='$var']" /commit:apphost | Out-Null
+        "  $var allowed"
+    }
+}
+
 # --- 3. nssm (service supervisor) ----------------------------------------
 $nssmDir = 'C:\nssm'
 $nssmExe = "$nssmDir\nssm.exe"
