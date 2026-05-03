@@ -13,7 +13,7 @@
 # CLI entry file (node_modules\tsx\dist\cli.mjs) executing `server.ts`.
 # Rationale: `tsx` lives in devDependencies, and the deploy runbook requires
 # `npm ci --include=dev` so its package is present at runtime. We point node
-# at tsx's real .mjs entry — NOT the .bin\tsx shim, which is a CMD wrapper
+# at tsx's real .mjs entry - NOT the .bin\tsx shim, which is a CMD wrapper
 # (.cmd) on Windows and would fail to parse as JavaScript.
 # If you flip tsx to dependencies or pre-compile server.ts to JS, update
 # $appExe / $appArgs below accordingly.
@@ -67,7 +67,7 @@ if ($existing) {
             if ($line -match '^[A-Z_][A-Z0-9_]*=') { $refresh += $line }
         }
     } else {
-        Write-Warning ".env not found at $envFile — only NODE_ENV/PORT/TRUST_PROXY_HEADERS will be set."
+        Write-Warning ".env not found at $envFile - only NODE_ENV/PORT/TRUST_PROXY_HEADERS will be set."
     }
     & $nssm set $svc AppEnvironmentExtra ($refresh -join "`n")
     & $nssm restart $svc

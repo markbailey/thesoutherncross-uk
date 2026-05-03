@@ -13,7 +13,7 @@ New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
 function Test-Cmd { param($name) [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
-# Download with retry — nssm.cc in particular returns 503 frequently.
+# Download with retry - nssm.cc in particular returns 503 frequently.
 function Get-FileWithRetry {
     param([string]$Uri, [string]$OutFile, [int]$MaxAttempts = 4)
     for ($i = 1; $i -le $MaxAttempts; $i++) {
@@ -42,7 +42,7 @@ if (Test-Path $nodeExe) {
         $env:Path += ';C:\Program Files\nodejs'
         'node installed: ' + (& $nodeExe --version)
     } else {
-        Write-Warning 'node.exe not found at C:\Program Files\nodejs after MSI — open a NEW PowerShell after this script finishes.'
+        Write-Warning 'node.exe not found at C:\Program Files\nodejs after MSI - open a NEW PowerShell after this script finishes.'
     }
 }
 
@@ -103,7 +103,7 @@ if (Test-Path $nssmExe) {
         [System.Environment]::SetEnvironmentVariable('Path', "$sysPath;$nssmDir", 'Machine')
         $env:Path += ";$nssmDir"
     }
-    # Don't call & $nssmExe version — nssm prints its banner to stderr in UTF-16
+    # Don't call & $nssmExe version - nssm prints its banner to stderr in UTF-16
     # and PowerShell's strict error mode treats that as a failure even on success.
     'nssm installed at ' + $nssmExe
 }
