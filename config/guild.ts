@@ -32,6 +32,12 @@ export type GuildFooter = {
   rightsLine: string;
 };
 
+export type GuildRoles = {
+  founder: string;
+  officers: readonly string[];
+  moderators: readonly string[];
+};
+
 export type Guild = {
   name: string;
   shortName: string;
@@ -46,6 +52,7 @@ export type Guild = {
   stats: GuildStats;
   join: GuildJoin;
   footer: GuildFooter;
+  roles: GuildRoles;
 };
 
 export const GUILD: Guild = {
@@ -100,5 +107,11 @@ export const GUILD: Guild = {
   footer: {
     coords: 'EU-WEST · 51.5N 0.1W',
     rightsLine: 'THE SOUTHERN CROSS UK — EST. 2015. All guild marks are the property of their crew.',
+  },
+  // Why: hardcoded rather than scraped on each poll — leadership rarely changes; edit here when it does.
+  roles: {
+    founder: '76561198051971258',
+    officers: ['76561198084744484', '76561198010234134', '76561198077248762'],
+    moderators: [],
   },
 } as const;

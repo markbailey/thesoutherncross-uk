@@ -6,7 +6,8 @@
       "avatar": null,
       "state": 1,
       "game": { "id": "730", "name": "COUNTER-STRIKE 2" },
-      "lastLogoff": null
+      "lastLogoff": null,
+      "role": "founder"
     },
     {
       "steamid": "76561198023456789",
@@ -14,7 +15,8 @@
       "avatar": null,
       "state": 1,
       "game": null,
-      "lastLogoff": null
+      "lastLogoff": null,
+      "role": "officer"
     },
     {
       "steamid": "76561198100200300",

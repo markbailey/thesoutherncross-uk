@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export type PillTone = 'on' | 'warn' | 'off';
+export type PillTone = 'on' | 'warn' | 'off' | 'green' | 'purple' | 'purple-deep';
 
 export interface PillProps extends React.HTMLAttributes<HTMLSpanElement> {
   tone: PillTone;

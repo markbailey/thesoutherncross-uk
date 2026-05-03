@@ -154,6 +154,9 @@ body {
 .pill.on   { color: var(--royal-green-neon); }
 .pill.warn { color: var(--status-warn); }
 .pill.off  { color: var(--status-down); }
+.pill.green        { color: var(--royal-green-neon); }
+.pill.purple       { color: var(--royal-purple-neon); }
+.pill.purple-deep  { color: var(--royal-purple-neon); background: rgba(75, 0, 130, 0.18); }
 
 /* Ghost HUD button */
 .hud-btn {

@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { AstronautAvatar } from './AstronautAvatar';
 import { Pill } from '../hud/Pill';
+import type { MemberRole } from '../../lib/member-roles';
+
+export type { MemberRole };
 
 export interface MemberCardMember {
   steamid: string;
@@ -9,7 +12,17 @@ export interface MemberCardMember {
   state: number; // 0 offline, 1 online, 2 busy, 3 away, 4 snooze, 5 lfg, 6 lftrade
   game?: string | null;
   lastLogoff?: number | null; // unix seconds
+  role?: MemberRole;
 }
+
+const ROLE_BADGE: Record<
+  Exclude<MemberRole, 'member'>,
+  { label: string; tone: 'green' | 'purple' | 'purple-deep' }
+> = {
+  founder: { label: 'FOUNDER', tone: 'green' },
+  officer: { label: 'OFFICER', tone: 'purple' },
+  moderator: { label: 'MOD', tone: 'purple-deep' },
+};
 
 export interface MemberCardProps {
   member: MemberCardMember;
@@ -23,6 +36,8 @@ export function MemberCard({ member, highlighted }: MemberCardProps) {
   const online = (member.state ?? 0) > 0;
   const hue = deriveHue(member.steamid);
   const last4 = member.steamid.slice(-4);
+  const role = member.role ?? 'member';
+  const badge = role === 'member' ? null : ROLE_BADGE[role];
 
   return (
     <div
@@ -106,6 +121,11 @@ export function MemberCard({ member, highlighted }: MemberCardProps) {
             >
               {member.persona}
             </div>
+            {badge ? (
+              <Pill tone={badge.tone} data-role={role} style={{ flexShrink: 0 }}>
+                {badge.label}
+              </Pill>
+            ) : null}
           </div>
           <div className="eyebrow p" style={{ fontSize: 9, marginTop: 2 }}>
             SCUK · {last4}

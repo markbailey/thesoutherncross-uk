@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { MemberCard, type MemberCardMember } from '../members/MemberCard';
 import { HudPanel } from '../hud/HudPanel';
 import { HudButton } from '../hud/Button';
+import type { MemberRole } from '../../lib/member-roles';
 
 type MembersResponse = {
   members: Array<{
@@ -14,6 +15,7 @@ type MembersResponse = {
     state: number | null;
     game: { id: string | null; name: string | null } | null;
     lastLogoff: number | null;
+    role?: MemberRole;
   }>;
   stale: boolean;
   updatedAt: number | null;
@@ -33,6 +35,7 @@ function adaptMember(raw: MembersResponse['members'][number]): MemberCardMember 
     state: raw.state ?? 0,
     game: raw.game?.name ?? null,
     lastLogoff: raw.lastLogoff ?? null,
+    role: raw.role ?? 'member',
   };
 }
 
