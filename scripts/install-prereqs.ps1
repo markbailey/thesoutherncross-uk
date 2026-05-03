@@ -103,7 +103,9 @@ if (Test-Path $nssmExe) {
         [System.Environment]::SetEnvironmentVariable('Path', "$sysPath;$nssmDir", 'Machine')
         $env:Path += ";$nssmDir"
     }
-    'nssm installed: ' + (& $nssmExe version 2>&1 | Select-Object -First 1)
+    # Don't call & $nssmExe version — nssm prints its banner to stderr in UTF-16
+    # and PowerShell's strict error mode treats that as a failure even on success.
+    'nssm installed at ' + $nssmExe
 }
 
 # --- 4. win-acme (Let's Encrypt client) ----------------------------------
