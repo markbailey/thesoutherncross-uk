@@ -31,8 +31,10 @@ function inTestMode(): boolean {
 
 export function JoinSection() {
   const [shown, setShown] = React.useState(0);
+  const [reduced, setReduced] = React.useState<boolean>(false);
 
   React.useEffect(() => {
+    setReduced(prefersReducedMotion() || inTestMode());
     if (prefersReducedMotion() || inTestMode()) {
       setShown(LINES.length);
       return;
@@ -44,6 +46,16 @@ export function JoinSection() {
       for (const t of timers) clearTimeout(t);
     };
   }, []);
+
+  // CTA fade-in chains off longest termLine delay (1700) + termLine duration
+  // (~250ms) + 100ms buffer. Reduced-motion users get opacity 1 instantly.
+  const ctaFadeStyle: React.CSSProperties = reduced
+    ? { opacity: 1 }
+    : {
+        opacity: 0,
+        animation: 'fadeIn 600ms ease-out forwards',
+        animationDelay: '2050ms',
+      };
 
   return (
     <section
@@ -175,6 +187,7 @@ export function JoinSection() {
                   gap: 10,
                   minWidth: 240,
                   justifyContent: 'center',
+                  ...ctaFadeStyle,
                 }}
               >
                 <SteamGlyph />
@@ -196,6 +209,7 @@ export function JoinSection() {
                   gap: 10,
                   minWidth: 240,
                   justifyContent: 'center',
+                  ...ctaFadeStyle,
                 }}
               >
                 <DiscordGlyph />

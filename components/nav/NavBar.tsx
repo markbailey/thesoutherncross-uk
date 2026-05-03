@@ -2,14 +2,14 @@
 
 import * as React from 'react';
 import { CruxMark } from '../layout/CruxMark';
-import { GUILD } from '../../config/guild';
+import { VERSION } from '../../config/site';
 import { useActiveSection } from './useActiveSection';
 import { useHashSection } from './useHashSection';
 
 const SECTION_IDS = ['hero', 'about', 'system', 'members', 'join'] as const;
 
 const LINKS: Array<{ id: (typeof SECTION_IDS)[number]; label: string }> = [
-  { id: 'hero', label: 'HERO' },
+  { id: 'hero', label: 'HOME' },
   { id: 'about', label: 'ABOUT' },
   { id: 'system', label: 'SYSTEM' },
   { id: 'members', label: 'MEMBERS' },
@@ -17,7 +17,6 @@ const LINKS: Array<{ id: (typeof SECTION_IDS)[number]; label: string }> = [
 ];
 
 export function NavBar() {
-  // Initialise hash-driven scroll behaviour.
   useHashSection();
   const active = useActiveSection(SECTION_IDS);
 
@@ -36,8 +35,7 @@ export function NavBar() {
   };
 
   return (
-    <nav
-      aria-label="Primary"
+    <header
       className="site-nav"
       style={{
         position: 'sticky',
@@ -46,8 +44,7 @@ export function NavBar() {
         height: 56,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 24px',
+        padding: '0 32px',
         background: 'rgba(7,6,12,0.82)',
         backdropFilter: 'blur(12px) saturate(140%)',
         WebkitBackdropFilter: 'blur(12px) saturate(140%)',
@@ -61,62 +58,136 @@ export function NavBar() {
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 12,
           color: 'var(--ink)',
           textDecoration: 'none',
-          fontFamily: 'var(--mono)',
-          fontSize: 12,
-          letterSpacing: '0.22em',
-          textTransform: 'uppercase',
         }}
       >
-        <CruxMark size={28} />
-        <span>{GUILD.shortName}</span>
+        <span
+          aria-hidden
+          style={{
+            width: 28,
+            height: 28,
+            display: 'inline-flex',
+            filter: 'drop-shadow(0 0 4px rgba(57,255,136,0.5))',
+          }}
+        >
+          <CruxMark size={28} />
+        </span>
+        <span
+          className="display"
+          style={{ fontSize: 12, letterSpacing: '0.22em' }}
+        >
+          TSX <span style={{ color: 'var(--royal-green-neon)' }}>·UK</span>
+        </span>
+        <span
+          className="eyebrow"
+          style={{ color: 'var(--ink-faint)', marginLeft: 6 }}
+        >
+          v{VERSION}
+        </span>
       </a>
 
-      <ul
-        className="site-nav__links"
+      <nav
+        aria-label="Primary"
+        style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}
+      >
+        <ul
+          className="site-nav__links"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            margin: 0,
+            padding: 0,
+            listStyle: 'none',
+          }}
+        >
+          {LINKS.map((link) => {
+            const isActive = active === link.id;
+            return (
+              <li key={link.id} style={{ position: 'relative' }}>
+                <a
+                  href={`#${link.id}`}
+                  onClick={(e) => handleClick(e, link.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={['site-nav__link', isActive ? 'nav-active' : '']
+                    .filter(Boolean)
+                    .join(' ')}
+                  style={{
+                    position: 'relative',
+                    display: 'inline-block',
+                    padding: '10px 16px',
+                    fontFamily: 'var(--mono)',
+                    fontSize: 11,
+                    letterSpacing: '0.20em',
+                    textTransform: 'uppercase',
+                    color: isActive ? 'var(--royal-green-neon)' : 'var(--ink-dim)',
+                    textShadow: isActive ? '0 0 8px rgba(57,255,136,0.6)' : undefined,
+                    textDecoration: 'none',
+                    transition: 'color .12s ease',
+                  }}
+                >
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        left: 4,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--royal-green-neon)',
+                        fontSize: 10,
+                      }}
+                    >
+                      ▸
+                    </span>
+                  )}
+                  {link.label}
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        left: 16,
+                        right: 16,
+                        bottom: 4,
+                        height: 1,
+                        background: 'var(--royal-green-neon)',
+                        boxShadow: '0 0 6px var(--royal-green-neon)',
+                      }}
+                    />
+                  )}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      <div
+        className="site-nav__rail"
         style={{
+          marginLeft: 16,
           display: 'flex',
+          gap: 10,
           alignItems: 'center',
-          gap: 6,
-          margin: 0,
-          padding: 0,
-          listStyle: 'none',
-          flexWrap: 'wrap',
         }}
       >
-        {LINKS.map((link) => {
-          const isActive = active === link.id;
-          return (
-            <li key={link.id}>
-              <a
-                href={`#${link.id}`}
-                onClick={(e) => handleClick(e, link.id)}
-                aria-current={isActive ? 'page' : undefined}
-                className={['site-nav__link', isActive ? 'nav-active' : '']
-                  .filter(Boolean)
-                  .join(' ')}
-                style={{
-                  display: 'inline-block',
-                  padding: '8px 12px',
-                  fontFamily: 'var(--mono)',
-                  fontSize: 11,
-                  letterSpacing: '0.22em',
-                  textTransform: 'uppercase',
-                  color: isActive ? 'var(--royal-green-neon)' : 'var(--ink-dim)',
-                  textShadow: isActive ? '0 0 10px rgba(57,255,136,0.45)' : undefined,
-                  textDecoration: 'none',
-                  transition: 'color .12s ease',
-                  borderRadius: 2,
-                }}
-              >
-                {link.label}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            color: 'var(--ink-dim)',
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            letterSpacing: '0.14em',
+          }}
+        >
+          <span className="dot on" /> UPLINK
+        </span>
+      </div>
 
       <style>{`
         .site-nav__link:hover { color: var(--ink); }
@@ -126,15 +197,17 @@ export function NavBar() {
           outline: 2px solid var(--royal-green-neon);
           outline-offset: 2px;
         }
+        @media (max-width: 880px) {
+          .site-nav__rail { display: none !important; }
+        }
         @media (max-width: 640px) {
-          /* Shrink padding + letterspacing so the 5 nav labels still fit without
-             needing a drawer. Keyboard + screen reader continue to see them. */
-          .site-nav__links { gap: 2px !important; }
-          .site-nav__link { padding: 6px 6px !important; letter-spacing: 0.14em !important; font-size: 10px !important; }
-          .site-nav__brand span { display: none; }
+          .site-nav__brand .eyebrow { display: none; }
+          .site-nav__brand .display { font-size: 11px !important; letter-spacing: 0.18em !important; }
+          .site-nav__links { gap: 0 !important; }
+          .site-nav__link { padding: 6px 8px !important; letter-spacing: 0.14em !important; font-size: 10px !important; }
         }
       `}</style>
-    </nav>
+    </header>
   );
 }
 

@@ -21,3 +21,4 @@ coverage/
 
 # deploy bundle produced by docs/deploy.md section B step 2
 deploy.zip
+.claude/scheduled_tasks.lock

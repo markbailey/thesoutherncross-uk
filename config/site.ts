@@ -24,3 +24,6 @@ export const SITE: Site = {
 export const BUILD_SHA: string = process.env['NEXT_PUBLIC_BUILD_SHA'] ?? 'dev';
 export const BUILD_DATE: string =
   process.env['NEXT_PUBLIC_BUILD_DATE'] ?? new Date(0).toISOString();
+
+import pkg from '../package.json' with { type: 'json' };
+export const VERSION: string = pkg.version;

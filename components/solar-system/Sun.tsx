@@ -37,29 +37,32 @@ export function Sun() {
 
   return (
     <group>
+      {/* Outer corona ring — warm orange with bloom-friendly opacity. */}
       <mesh ref={coronaRef}>
         <sphereGeometry args={[1.6, 32, 32]} />
-        <meshBasicMaterial color="#4b0082" transparent opacity={0.18} depthWrite={false} />
+        <meshBasicMaterial color="#ff6a3d" transparent opacity={0.18} depthWrite={false} />
       </mesh>
+      {/* Mid corona — amber/gold. */}
       <mesh>
         <sphereGeometry args={[1.0, 32, 32]} />
         <meshStandardMaterial
-          color="#7c3aed"
-          emissive="#7c3aed"
+          color="#ffc97a"
+          emissive="#ffc97a"
           emissiveIntensity={2.4}
           toneMapped={false}
         />
       </mesh>
+      {/* Core — pale yellow. */}
       <mesh>
         <sphereGeometry args={[0.55, 24, 24]} />
         <meshStandardMaterial
-          color="#39ff88"
-          emissive="#39ff88"
+          color="#fff4c2"
+          emissive="#fff4c2"
           emissiveIntensity={1.8}
           toneMapped={false}
         />
       </mesh>
-      <pointLight color="#7c3aed" intensity={2.4} distance={40} decay={1.6} />
+      <pointLight color="#ffb060" intensity={2.4} distance={40} decay={1.6} />
     </group>
   );
 }

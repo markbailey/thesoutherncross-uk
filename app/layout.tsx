@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { Orbitron, JetBrains_Mono } from 'next/font/google';
+import { Orbitron, JetBrains_Mono, Rajdhani } from 'next/font/google';
 import { SITE } from '../config/site';
 import { GUILD } from '../config/guild';
 import './globals.css';
@@ -16,6 +16,13 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-mono',
+  display: 'swap',
+});
+
+const rajdhani = Rajdhani({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-rajdhani',
   display: 'swap',
 });
 
@@ -78,7 +85,7 @@ const organizationJsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${orbitron.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${orbitron.variable} ${jetbrainsMono.variable} ${rajdhani.variable}`}>
       <body>
         {children}
         <Script

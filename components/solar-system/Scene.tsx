@@ -105,11 +105,17 @@ export function Scene({ games }: SceneProps) {
         <BackgroundCatcher />
         <Sun />
 
-        {planets.map((g) => {
+        {planets.map((g, i) => {
           const planetRadius = g._radius;
+          // Stagger pulse periods across rings (8s, 10s, 12s) — cycles per mockup spec.
+          const orbitPeriod = [8, 10, 12][i % 3];
           return (
             <group key={g.id}>
-              <Orbit radius={planetRadius} attenuate={view === 'system' ? 1 : 0.3} />
+              <Orbit
+                radius={planetRadius}
+                attenuate={view === 'system' ? 1 : 0.3}
+                period={orbitPeriod}
+              />
               <PlanetWithTracker
                 gameId={g.id}
                 color={g.planet.color}

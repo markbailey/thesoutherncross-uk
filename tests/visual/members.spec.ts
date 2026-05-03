@@ -19,15 +19,15 @@ test.describe('@visual members', () => {
     await mockApi(page, { members: { members: [], stale: false, updatedAt: null } });
     await page.goto('/#/members');
     await waitForReady(page);
-    await expect(page.locator('#members')).toContainText('NO OPERATORS ONLINE');
+    await expect(page.locator('#members')).toContainText('NO MEMBERS UPLINKED');
   });
 
-  test('error state shows signal-lost panel with retry', async ({ page }) => {
+  test('error state shows uplink-lost panel with retry', async ({ page }) => {
     await mockApi(page, { membersStatus: 500 });
     await page.goto('/#/members');
     await waitForReady(page);
-    await expect(page.locator('#members')).toContainText('SIGNAL LOST');
-    await expect(page.locator('#members').getByRole('button', { name: /RETRY NOW/i })).toBeVisible();
+    await expect(page.locator('#members')).toContainText('UPLINK LOST');
+    await expect(page.locator('#members').getByRole('button', { name: /RETRY UPLINK/i })).toBeVisible();
   });
 
   test('stale-data chip appears when stale=true', async ({ page }) => {

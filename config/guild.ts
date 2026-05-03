@@ -27,11 +27,6 @@ export type GuildJoin = {
   discordInviteUrl: string;
 };
 
-export type GuildFooter = {
-  coords: string;
-  rightsLine: string;
-};
-
 export type GuildRoles = {
   founders: readonly string[];
   officers: readonly string[];
@@ -42,49 +37,32 @@ export type Guild = {
   name: string;
   shortName: string;
   tagline: string;
-  subheading: string;
   established: number;
   region: string;
-  ops: string;
-  about: string;
-  houseRules: readonly string[];
   comms: GuildComms;
   stats: GuildStats;
   join: GuildJoin;
-  footer: GuildFooter;
   roles: GuildRoles;
 };
 
+const ESTABLISHED_YEAR = 2006;
+const STEAM_GROUP_URL = 'https://steamcommunity.com/groups/TheSouthernCrossUK';
+const DISCORD_INVITE_URL = 'https://discord.gg/gBmECbGW4Z';
+
 export const GUILD: Guild = {
   name: 'The Southern Cross UK',
-  shortName: 'TSC UK',
+  shortName: 'TSX UK',
   tagline: 'Servers. Signals. Squad.',
-  subheading: 'Guild ops from orbit — EU-West since 2015.',
-  established: 2015,
+  established: ESTABLISHED_YEAR,
   region: 'EU-West',
-  ops: 'Self-hosted game servers, Steam group roster, Discord comms.',
-  about:
-    'The Southern Cross UK is a long-running EU-West gaming guild established in 2015. ' +
-    'We run our own game servers — Source-engine titles and Minecraft today, more as the crew picks up new worlds — ' +
-    'backed by a Steam group for the roster and Discord for live comms. The vibe is grown-up, low-drama, and consistent: ' +
-    'show up when you can, treat people decently, and pitch in with the admin work when it needs doing. No rank grind, ' +
-    'no mandatory attendance — just a steady signal and a place to land when you log on.',
-  houseRules: [
-    'Be decent to the crew and to strangers. No slurs, no bullying, no griefing.',
-    'Voice chat is encouraged but never required. Lurkers welcome.',
-    'Cheats, exploits, and alt-farming on guild servers get you removed. No second chances.',
-    'Keep politics and drama out of the common channels — take it to DMs or drop it.',
-    'If a server is down or a member needs help, flag it in Discord — ops will triage.',
-    'Admin calls on bans and server rules are final. Appeal once in DMs if you disagree.',
-  ],
   comms: {
-    voice: { label: 'Discord', href: 'https://discord.gg/gBmECbGW4Z' },
-    lfg: { label: 'Steam Group', href: 'https://steamcommunity.com/groups/TheSouthernCrossUK' },
+    voice: { label: 'Discord', href: DISCORD_INVITE_URL },
+    lfg: { label: 'Steam Group', href: STEAM_GROUP_URL },
     hours: 'Peak hours 19:00–23:00 UK, most nights.',
-    tenure: 'Core crew together since 2015.',
+    tenure: `Core crew together since ${ESTABLISHED_YEAR}.`,
   },
   stats: {
-    est: '2015',
+    est: `${ESTABLISHED_YEAR}`,
     crew: 'Open roster',
     worlds: 'Multi-game',
     region: 'EU-West',
@@ -101,12 +79,8 @@ export const GUILD: Guild = {
       'Working mic is welcome but optional. Comms literacy matters more than hardware.',
       'Play something we host, at least occasionally. No activity quota.',
     ],
-    steamGroupUrl: 'https://steamcommunity.com/groups/TheSouthernCrossUK',
-    discordInviteUrl: 'https://discord.gg/gBmECbGW4Z',
-  },
-  footer: {
-    coords: 'EU-WEST · 51.5N 0.1W',
-    rightsLine: 'THE SOUTHERN CROSS UK — EST. 2015. All guild marks are the property of their crew.',
+    steamGroupUrl: STEAM_GROUP_URL,
+    discordInviteUrl: DISCORD_INVITE_URL,
   },
   // Why: hardcoded rather than scraped on each poll — leadership rarely changes; edit here when it does.
   roles: {
