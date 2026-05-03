@@ -135,9 +135,13 @@ Using the `$siteId` captured in step 2:
 
 ```powershell
 & C:\win-acme\wacs.exe --target iis --siteid $siteId `
-                       --emailaddress mark.bailey@openasset.com `
+                       --emailaddress <your-email-here> `
                        --accepttos --installation iis
 ```
+
+Use any email you control - Let's Encrypt only uses it for renewal-failure
+notifications, never marketing. A personal address or a guild-owned alias
+both work.
 
 Confirm the `thesoutherncross.uk` hostname when prompted. win-acme installs a
 daily renewal scheduled task automatically.
