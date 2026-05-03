@@ -13,12 +13,13 @@ export interface MemberCardMember {
 
 export interface MemberCardProps {
   member: MemberCardMember;
+  highlighted?: boolean;
 }
 
 /**
  * Ported from docs/design/user/site.html lines 8415-8491.
  */
-export function MemberCard({ member }: MemberCardProps) {
+export function MemberCard({ member, highlighted }: MemberCardProps) {
   const online = (member.state ?? 0) > 0;
   const hue = deriveHue(member.steamid);
   const last4 = member.steamid.slice(-4);
@@ -27,6 +28,7 @@ export function MemberCard({ member }: MemberCardProps) {
     <div
       className="hud-panel scanlines member-card"
       data-steamid={member.steamid}
+      data-highlight={highlighted ? 'true' : undefined}
       style={{ position: 'relative', padding: 0, background: 'var(--panel)' }}
     >
       <div

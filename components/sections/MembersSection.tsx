@@ -42,54 +42,43 @@ export function MembersSection() {
     revalidateOnFocus: false,
   });
 
-  // Deep-link highlight: #/members/{steamid}. One-shot per hash via ref so
-  // SWR's 60s refetch can't re-scroll/re-pulse while the user is browsing.
-  // Re-runs when (a) the hash changes, or (b) data first arrives and the
-  // target card finally exists in the DOM. The pulse-removal timer is hoisted
-  // out of the effect so an SWR-driven re-run mid-pulse won't strand the
-  // `data-highlight` attribute on the card.
-  const highlightedHash = React.useRef<string | null>(null);
-  const pulseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Deep-link highlight: #/members/{steamid}. The highlighted steamid is
+  // tracked in React state so MemberCard renders `data-highlight` declaratively
+  // and re-renders can't strand the attribute. The highlight persists until
+  // the hash navigates away — the 2s pulse keyframe still runs once via CSS
+  // animation, but the marker stays so users (and tests) can find the card.
+  const [highlightedSteamid, setHighlightedSteamid] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const tryHighlight = () => {
-      const hash = window.location.hash;
-      const m = hash.match(/^#\/?members\/([^/]+)$/);
-      if (!m) {
-        highlightedHash.current = null;
-        return;
-      }
-      if (highlightedHash.current === hash) return;
-      const steamid = m[1];
-      if (!steamid) return;
-
-      const card = document.querySelector<HTMLElement>(
-        `[data-steamid="${CSS.escape(steamid)}"]`,
-      );
-      if (!card) return; // wait for data to land; effect will re-run when it does
-      highlightedHash.current = hash;
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      card.setAttribute('data-highlight', 'true');
-      if (pulseTimer.current) clearTimeout(pulseTimer.current);
-      pulseTimer.current = setTimeout(() => {
-        card.removeAttribute('data-highlight');
-        pulseTimer.current = null;
-      }, 2000);
+    const syncFromHash = () => {
+      const m = window.location.hash.match(/^#\/?members\/([^/]+)$/);
+      setHighlightedSteamid(m?.[1] ?? null);
     };
 
-    tryHighlight();
-    window.addEventListener('hashchange', tryHighlight);
+    syncFromHash();
+    window.addEventListener('hashchange', syncFromHash);
     return () => {
-      window.removeEventListener('hashchange', tryHighlight);
-    };
-  }, [data]);
-
-  React.useEffect(() => {
-    return () => {
-      if (pulseTimer.current) clearTimeout(pulseTimer.current);
+      window.removeEventListener('hashchange', syncFromHash);
     };
   }, []);
+
+  // Scroll the card into view once the target exists in the DOM. Separate
+  // effect so it re-runs when data lands after the hash is already set.
+  const scrolledFor = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!highlightedSteamid) {
+      scrolledFor.current = null;
+      return;
+    }
+    if (scrolledFor.current === highlightedSteamid) return;
+    const card = document.querySelector<HTMLElement>(
+      `[data-steamid="${CSS.escape(highlightedSteamid)}"]`,
+    );
+    if (!card) return;
+    scrolledFor.current = highlightedSteamid;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightedSteamid, data]);
 
   return (
     <section
@@ -157,7 +146,11 @@ export function MembersSection() {
             }}
           >
             {data.members.map((m) => (
-              <MemberCard key={m.steamid} member={adaptMember(m)} />
+              <MemberCard
+                key={m.steamid}
+                member={adaptMember(m)}
+                highlighted={m.steamid === highlightedSteamid}
+              />
             ))}
           </div>
         ) : null}
