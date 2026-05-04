@@ -80,7 +80,7 @@ export function AboutSection() {
             <div className="eyebrow p" style={{ marginBottom: 10 }}>
               // WHO WE ARE
             </div>
-            {/* Hero copy mirrors docs/design/user/site.html — kept inline because the
+            {/* Hero copy mirrors docs/design.html — kept inline because the
                 "like-minded" highlight is structural, not a plain string. */}
             <h2
               className="display"

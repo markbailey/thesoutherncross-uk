@@ -31,11 +31,14 @@ function inTestMode(): boolean {
 
 export function JoinSection() {
   const [shown, setShown] = React.useState(0);
-  const [reduced, setReduced] = React.useState<boolean>(false);
+  // testMode suppresses the .cta-fade-in class so Playwright sees the CTAs
+  // immediately. Reduced-motion is handled by CSS @media — no JS gate needed.
+  const [testMode, setTestMode] = React.useState(false);
 
   React.useEffect(() => {
-    setReduced(prefersReducedMotion() || inTestMode());
-    if (prefersReducedMotion() || inTestMode()) {
+    const skipAnimation = prefersReducedMotion() || inTestMode();
+    setTestMode(inTestMode());
+    if (skipAnimation) {
       setShown(LINES.length);
       return;
     }
@@ -47,15 +50,7 @@ export function JoinSection() {
     };
   }, []);
 
-  // CTA fade-in chains off longest termLine delay (1700) + termLine duration
-  // (~250ms) + 100ms buffer. Reduced-motion users get opacity 1 instantly.
-  const ctaFadeStyle: React.CSSProperties = reduced
-    ? { opacity: 1 }
-    : {
-        opacity: 0,
-        animation: 'fadeIn 600ms ease-out forwards',
-        animationDelay: '2050ms',
-      };
+  const ctaFadeClass = testMode ? '' : ' cta-fade-in';
 
   return (
     <section
@@ -176,7 +171,7 @@ export function JoinSection() {
                 href={GUILD.join.steamGroupUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hud-btn"
+                className={`hud-btn${ctaFadeClass}`}
                 style={{
                   textDecoration: 'none',
                   padding: '14px 24px',
@@ -187,7 +182,6 @@ export function JoinSection() {
                   gap: 10,
                   minWidth: 240,
                   justifyContent: 'center',
-                  ...ctaFadeStyle,
                 }}
               >
                 <SteamGlyph />
@@ -198,7 +192,7 @@ export function JoinSection() {
                 href={GUILD.join.discordInviteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hud-btn purple"
+                className={`hud-btn purple${ctaFadeClass}`}
                 style={{
                   textDecoration: 'none',
                   padding: '14px 24px',
@@ -209,7 +203,6 @@ export function JoinSection() {
                   gap: 10,
                   minWidth: 240,
                   justifyContent: 'center',
-                  ...ctaFadeStyle,
                 }}
               >
                 <DiscordGlyph />

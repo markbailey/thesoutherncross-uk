@@ -273,6 +273,51 @@ body {
   animation: fadeIn 600ms ease-out forwards;
 }
 
+/* JoinSection CTA reveal — gated by no-preference so reduced-motion users
+   never render an initial opacity:0 state. Delay matches the boot-log
+   sequence (1700ms last line + ~250ms termLine + ~100ms buffer). */
+@media (prefers-reduced-motion: no-preference) {
+  .cta-fade-in {
+    opacity: 0;
+    animation: fadeIn 600ms ease-out 2050ms forwards;
+  }
+}
+
+/* Site footer — mirrors docs/design.html. Mobile collapses to column +
+   tighter padding; backdrop-filter adds the design's frosted blur. */
+.site-foot {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 32px;
+  border-top: 1px solid var(--hair);
+  background: rgba(7, 6, 12, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.site-foot .credit { color: var(--ink-dim); }
+.site-foot .credit b {
+  color: var(--royal-green-neon);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+@media (max-width: 640px) {
+  .site-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 20px;
+  }
+}
+
 /* hero scroll-cue hover */
 .hero-scroll-cue {
   transition: box-shadow 220ms cubic-bezier(.2,.7,.2,1),
