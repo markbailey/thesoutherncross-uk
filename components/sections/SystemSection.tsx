@@ -59,6 +59,10 @@ export function SystemSection() {
   const { data, error, isLoading } = useSWR<ApiResponse>('/api/servers', fetcher, {
     refreshInterval: 30_000,
     keepPreviousData: true,
+    // Suppress spurious React re-renders when the polled response is byte-for-byte
+    // identical. Stops the 30s "planet snap" the user reported even though the
+    // new vanilla-three Scene no longer rebuilds on data changes.
+    compare: (a, b) => JSON.stringify(a) === JSON.stringify(b),
   });
 
   const games: OverlayGame[] = React.useMemo(() => {
@@ -96,7 +100,10 @@ export function SystemSection() {
     [data],
   );
 
-  const [webgl, setWebgl] = React.useState<boolean>(true);
+  // null = WebGL probe not yet run (SSR + initial paint). Render neither
+  // <Scene/> nor <ListMode/> until non-null so devices without WebGL never
+  // see a Scene flash before falling back.
+  const [webgl, setWebgl] = React.useState<boolean | null>(null);
   React.useEffect(() => {
     setWebgl(isWebGLAvailable());
   }, []);
@@ -111,7 +118,7 @@ export function SystemSection() {
   const reset = useCameraState((s) => s.reset);
   const deselect = useCameraState((s) => s.deselect);
 
-  const useFallback = !webgl || listMode;
+  const useFallback = webgl === false || listMode;
 
   // Deep-link restore must run exactly once after `games` first populates;
   // SWR returns a fresh array on every 30s poll, so a games-dependent effect
@@ -192,27 +199,17 @@ export function SystemSection() {
       style={{
         position: 'relative',
         minHeight: 'calc(100vh - 56px)',
-        padding: '72px 32px 64px',
+        padding: 0,
         borderTop: '1px solid var(--hair)',
-        background: 'var(--space)',
+        background:
+          'radial-gradient(ellipse at center, #050414 0%, #020106 70%), var(--space)',
         overflow: 'hidden',
       }}
     >
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background:
-            'radial-gradient(ellipse 70% 60% at 30% 50%, rgba(75,0,130,0.25), transparent 60%)',
-        }}
-      />
-
       {isEmpty ? (
         <EmptyState />
       ) : (
-        <PopulatedLayout
+        <FullBleedLayout
           games={games}
           sceneGames={sceneGames}
           loading={isLoading}
@@ -220,13 +217,14 @@ export function SystemSection() {
           useFallback={useFallback}
           onErrorBoundary={() => setListMode(true)}
           listMode={listMode}
+          webgl={webgl}
         />
       )}
     </section>
   );
 }
 
-interface PopulatedLayoutProps {
+interface FullBleedLayoutProps {
   games: OverlayGame[];
   sceneGames: Array<{
     id: string;
@@ -244,8 +242,9 @@ interface PopulatedLayoutProps {
   useFallback: boolean;
   onErrorBoundary: () => void;
   listMode: boolean;
+  webgl: boolean | null;
 }
-function PopulatedLayout({
+function FullBleedLayout({
   games,
   sceneGames,
   loading,
@@ -253,91 +252,251 @@ function PopulatedLayout({
   useFallback,
   onErrorBoundary,
   listMode,
-}: PopulatedLayoutProps) {
+  webgl,
+}: FullBleedLayoutProps) {
+  const focusedGameId = useCameraState((s) => s.focusedGameId);
+  const userZoom = useCameraState((s) => s.userZoom);
+  const setUserZoom = useCameraState((s) => s.setUserZoom);
+  const toggleListMode = useCameraState((s) => s.toggleListMode);
   return (
     <div
       style={{
         position: 'relative',
-        zIndex: 1,
-        maxWidth: 1440,
-        margin: '0 auto',
-        height: 'calc(100vh - 136px)',
+        width: '100%',
+        height: 'calc(100vh - 56px)',
         minHeight: 700,
-        display: 'grid',
-        gridTemplateColumns: '1fr',
-        gap: 32,
+        overflow: 'hidden',
       }}
-      className="system-grid"
     >
-      <style>{`
-        @media (min-width: 1024px) {
-          .system-grid {
-            grid-template-columns: minmax(0, 1.5fr) minmax(340px, 400px) !important;
-          }
-        }
-      `}</style>
-      <div style={{ position: 'relative', minHeight: 0, minWidth: 0 }}>
-        <div
-          className="eyebrow p"
-          style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}
-        >
-          //  SYSTEM MAP · ECLIPTIC VIEW
+      {/* Top-left section crumb */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 24,
+          left: 32,
+          zIndex: 3,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          pointerEvents: 'none',
+        }}
+      >
+        <div className="crumb" style={{ fontSize: 10 }}>
+          <span>OPS</span>
+          <span className="sep">/</span>
+          <b>SYSTEM · 3D</b>
         </div>
-        <div
-          className="num"
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            zIndex: 2,
-            fontSize: 10,
-            color: 'var(--ink-faint)',
-            letterSpacing: '0.14em',
-          }}
-        >
-          RA 00 14 12 · DEC +37 12
-        </div>
-        <div style={{ position: 'absolute', inset: '24px 0 24px 0' }}>
-          {useFallback ? (
-            <ListMode games={games} />
-          ) : (
-            <SceneErrorBoundary onError={onErrorBoundary}>
-              <Scene games={sceneGames} />
-            </SceneErrorBoundary>
-          )}
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            display: 'flex',
-            gap: 16,
-            fontSize: 10,
-            color: 'var(--ink-faint)',
-            letterSpacing: '0.14em',
-            fontFamily: 'var(--mono)',
-            textTransform: 'uppercase',
-          }}
-        >
-          <span>
-            <span className="dot on" /> ONLINE
-          </span>
-          <span>
-            <span className="dot warn" /> LAGGY
-          </span>
-          <span>
-            <span className="dot off" /> OFFLINE
-          </span>
-          {!listMode ? (
-            <span style={{ marginLeft: 16, color: 'var(--ink-dim)' }}>
-              CLICK PLANET · SELECT &nbsp; · &nbsp; CLICK MOON · FOCUS &nbsp; · &nbsp; ESC · RELEASE
-            </span>
-          ) : null}
-        </div>
+        <span className="eyebrow g" style={{ fontSize: 9, letterSpacing: '0.24em' }}>
+          {games.length ? `${games.length} WORLDS · LIVE` : 'NO WORLDS'}
+        </span>
       </div>
 
-      <HudOverlay games={games} loading={loading} error={error} />
+      {/* Top-right corner title */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 24,
+          right: 32,
+          zIndex: 3,
+          textAlign: 'right',
+          pointerEvents: 'none',
+        }}
+      >
+        <div className="eyebrow p" style={{ fontSize: 9 }}>
+          // SERVER HUB
+        </div>
+        <div
+          className="display"
+          style={{
+            fontSize: 18,
+            letterSpacing: '0.18em',
+            color: 'var(--ink)',
+            marginTop: 2,
+          }}
+        >
+          ORBITAL RECON
+        </div>
+        {!focusedGameId ? (
+          <div
+            style={{
+              marginTop: 8,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              pointerEvents: 'auto',
+            }}
+          >
+            <HudButton size="sm" variant={listMode ? 'green' : 'purple'} onClick={toggleListMode}>
+              {listMode ? 'SCENE' : 'LIST'}
+            </HudButton>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Corner reticle markers */}
+      <HudCorner corner="tl" />
+      <HudCorner corner="tr" />
+      <HudCorner corner="bl" />
+      <HudCorner corner="br" />
+
+      {/* Scene fills the section behind the HUD overlay. */}
+      {webgl === null ? (
+        <SceneSkeleton />
+      ) : useFallback ? (
+        <div style={{ position: 'absolute', inset: '72px 24px 64px 24px' }}>
+          <ListMode games={games} />
+        </div>
+      ) : (
+        <SceneErrorBoundary onError={onErrorBoundary}>
+          <Scene games={sceneGames} />
+        </SceneErrorBoundary>
+      )}
+
+      {/* Hint band — shown in all scene states; only hidden in list-mode/fallback. */}
+      {!useFallback ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: 88,
+            transform: 'translateX(-50%)',
+            zIndex: 3,
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            letterSpacing: '0.24em',
+            color: 'var(--ink-faint)',
+            textTransform: 'uppercase',
+            padding: '6px 14px',
+            border: '1px solid var(--hair)',
+            background: 'rgba(7,6,12,0.6)',
+            backdropFilter: 'blur(6px)',
+            pointerEvents: 'none',
+          }}
+        >
+          Click a planet to zoom in · drag to orbit · scroll to zoom · shift-drag to pan
+        </div>
+      ) : null}
+
+      {/* Status legend bottom-left */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 24,
+          left: 32,
+          zIndex: 3,
+          display: 'flex',
+          gap: 16,
+          fontSize: 10,
+          color: 'var(--ink-faint)',
+          letterSpacing: '0.14em',
+          fontFamily: 'var(--mono)',
+          textTransform: 'uppercase',
+          pointerEvents: 'none',
+        }}
+      >
+        <span>
+          <span className="dot on" /> ONLINE
+        </span>
+        <span>
+          <span className="dot warn" /> LAGGY
+        </span>
+        <span>
+          <span className="dot off" /> OFFLINE
+        </span>
+      </div>
+
+      {/* Bottom-right ZOOM slider — system view only (planet/server views are camera-driven). */}
+      {!useFallback && !focusedGameId ? (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 48,
+            right: 32,
+            zIndex: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            pointerEvents: 'auto',
+          }}
+        >
+          <style>{`
+            input.s3-zoom {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 120px;
+              height: 14px;
+              background: transparent;
+              cursor: pointer;
+            }
+            input.s3-zoom::-webkit-slider-runnable-track {
+              height: 1px;
+              background: var(--hair);
+            }
+            input.s3-zoom::-moz-range-track {
+              height: 1px;
+              background: var(--hair);
+            }
+            input.s3-zoom::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: var(--royal-green-neon);
+              border: none;
+              margin-top: -3.5px;
+            }
+            input.s3-zoom::-moz-range-thumb {
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              background: var(--royal-green-neon);
+              border: none;
+            }
+          `}</style>
+          <span
+            style={{
+              fontSize: 9,
+              color: 'var(--ink-faint)',
+              letterSpacing: '0.18em',
+              fontFamily: 'var(--mono)',
+            }}
+          >
+            ZOOM
+          </span>
+          <input
+            className="s3-zoom"
+            type="range"
+            min="0.029"
+            max="2.26"
+            step="0.01"
+            value={userZoom}
+            onChange={(e) => setUserZoom(parseFloat(e.target.value))}
+            aria-label="Zoom"
+          />
+        </div>
+      ) : null}
+
+      {/* Bottom-right RA/DEC stamp */}
+      <div
+        className="num"
+        style={{
+          position: 'absolute',
+          bottom: 24,
+          right: 32,
+          zIndex: 3,
+          fontSize: 9,
+          color: 'var(--ink-faint)',
+          letterSpacing: '0.16em',
+          fontFamily: 'var(--mono)',
+          textTransform: 'uppercase',
+          pointerEvents: 'none',
+        }}
+      >
+        RA 00 14 12 · DEC +37 12
+      </div>
+
+      {/* Right-side floating HUD overlay — only when a planet/server is selected. */}
+      {focusedGameId ? <HudOverlay games={games} loading={loading} error={error} /> : null}
     </div>
   );
 }
@@ -415,11 +574,12 @@ function EmptyState() {
         zIndex: 1,
         maxWidth: 1440,
         margin: '0 auto',
-        height: 'calc(100vh - 136px)',
+        height: 'calc(100vh - 56px)',
         minHeight: 600,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: '32px',
       }}
     >
       <DecorativeSystem />
