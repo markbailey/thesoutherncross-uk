@@ -21,6 +21,7 @@ export interface SceneGame {
 
 export interface SceneProps {
   games: SceneGame[];
+  onWebGLFailure?: () => void;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -408,7 +409,7 @@ interface SimState {
 }
 
 // ── Scene component ─────────────────────────────────────────────────
-export function Scene({ games }: SceneProps) {
+export function Scene({ games, onWebGLFailure }: SceneProps) {
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const labelsRef = React.useRef<HTMLDivElement>(null);
@@ -423,6 +424,14 @@ export function Scene({ games }: SceneProps) {
   const visibleRef = React.useRef<boolean>(visible);
   React.useEffect(() => {
     visibleRef.current = visible;
+    const c = wrapperRef.current as
+      | (HTMLDivElement & {
+          __startSceneLoop?: () => void;
+          __stopSceneLoop?: () => void;
+        })
+      | null;
+    if (visible) c?.__startSceneLoop?.();
+    else c?.__stopSceneLoop?.();
   }, [visible]);
 
   // Tracks whether the scene has been built — guarantees the build effect
@@ -456,8 +465,11 @@ export function Scene({ games }: SceneProps) {
     try {
       renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     } catch {
-      // Throws into the React error boundary in SystemSection -> ListMode
-      throw new Error('WebGL context creation failed');
+      // Async failure can't bubble to <SceneErrorBoundary> (effect-phase). Notify
+      // SystemSection so it can flip listMode and render the ListMode fallback.
+      onWebGLFailure?.();
+      builtRef.current = false; // allow retry if the prop changes
+      return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     const initialW = container.clientWidth || 1;
@@ -632,22 +644,27 @@ export function Scene({ games }: SceneProps) {
 
     // Build planet labels
     interface LabelEntry {
-      el: HTMLDivElement;
+      el: HTMLButtonElement;
       planet: PlanetMesh;
     }
     const labels: LabelEntry[] = [];
     if (labelsHost) {
       labelsHost.innerHTML = '';
       planetMeshes.forEach((pm) => {
-        const el = document.createElement('div');
+        const el = document.createElement('button') as HTMLButtonElement;
+        el.type = 'button';
         el.className = 's3-label';
         el.dataset.planetId = pm.data.id;
+        el.setAttribute('aria-label', `Focus planet ${pm.data.id.toUpperCase()}`);
+        // Reset native button styling so it visually matches the prior <div>.
         el.style.cssText = `
           position: absolute; left: 0; top: 0;
           pointer-events: auto; cursor: pointer;
           transform: translate(-9999px, -9999px);
           will-change: transform, opacity;
           font-family: var(--mono); z-index: 2;
+          appearance: none; background: transparent; border: none;
+          padding: 0; margin: 0; font: inherit; color: inherit; text-align: left;
         `;
         el.addEventListener('pointerenter', () => {
           sim.hoveredId = pm.data.id;
@@ -934,18 +951,17 @@ export function Scene({ games }: SceneProps) {
     // Animation loop
     let last = performance.now();
     let raf = 0;
+    let loopRunning = false;
     let ambientYaw = 0;
     let dispatchedReady = false;
     const tmpVec = new THREE.Vector3();
     const sunPos = new THREE.Vector3(0, 0, 0);
+    const scratchA = new THREE.Vector3();
+    const scratchB = new THREE.Vector3();
+    const scratchProj = new THREE.Vector3();
+    const scratchSunProj = new THREE.Vector3();
 
     const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
-      // Skip rendering when offscreen / tab hidden — saves CPU.
-      if (!visibleRef.current) {
-        last = now;
-        return;
-      }
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
@@ -1021,17 +1037,18 @@ export function Scene({ games }: SceneProps) {
         const rect = renderer.domElement.getBoundingClientRect();
         const hw = rect.width / 2;
         const hh = rect.height / 2;
-        const camToSun = sunPos.clone().sub(camera.position).length();
+        const camToSun = scratchA.copy(sunPos).sub(camera.position).length();
+        // Sun projection is identical for every label this frame — compute once.
+        scratchSunProj.copy(sunPos).project(camera);
+        const sunX = scratchSunProj.x * hw + hw;
+        const sunY = -scratchSunProj.y * hh + hh;
         for (const lb of labels) {
           lb.planet.group.getWorldPosition(tmpVec);
-          const dCam = tmpVec.clone().sub(camera.position).length();
-          const v = tmpVec.clone().project(camera);
-          const behind = v.z < -1 || v.z > 1;
-          const x = v.x * hw + hw;
-          const y = -v.y * hh + hh;
-          const sunV = sunPos.clone().project(camera);
-          const sunX = sunV.x * hw + hw;
-          const sunY = -sunV.y * hh + hh;
+          const dCam = scratchB.copy(tmpVec).sub(camera.position).length();
+          scratchProj.copy(tmpVec).project(camera);
+          const behind = scratchProj.z < -1 || scratchProj.z > 1;
+          const x = scratchProj.x * hw + hw;
+          const y = -scratchProj.y * hh + hh;
           const dSunScreen = Math.hypot(x - sunX, y - sunY);
           const occluded = dCam > camToSun && dSunScreen < 60;
           const isSelected = sim.selectedId === lb.planet.data.id;
@@ -1052,12 +1069,37 @@ export function Scene({ games }: SceneProps) {
           // noop
         }
       }
+
+      // Schedule next frame at the END so stopLoop() can prevent re-scheduling.
+      if (loopRunning) raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+
+    const startLoop = () => {
+      if (loopRunning) return;
+      loopRunning = true;
+      last = performance.now();
+      raf = requestAnimationFrame(tick);
+    };
+    const stopLoop = () => {
+      loopRunning = false;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    // Expose start/stop to the outer visibility watcher.
+    const containerExt = container as HTMLDivElement & {
+      __startSceneLoop?: () => void;
+      __stopSceneLoop?: () => void;
+    };
+    containerExt.__startSceneLoop = startLoop;
+    containerExt.__stopSceneLoop = stopLoop;
+    if (visibleRef.current) startLoop();
 
     // Cleanup
     return () => {
-      cancelAnimationFrame(raf);
+      stopLoop();
+      containerExt.__startSceneLoop = undefined;
+      containerExt.__stopSceneLoop = undefined;
       unsubscribe();
       ro?.disconnect();
       window.removeEventListener('resize', onResize);

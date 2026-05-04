@@ -55,14 +55,42 @@ const CONNECT_STRINGS: Record<string, string> = (() => {
   return out;
 })();
 
+// Shallow structural compare for SWR. Ignores `updatedAt` (top-level + per-server)
+// because it's not rendered anywhere — diffing it triggers spurious re-renders
+// every poll. JSON.stringify was the prior approach; this avoids the alloc.
+function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.games.length !== b.games.length) return false;
+  for (let i = 0; i < a.games.length; i++) {
+    const ga = a.games[i];
+    const gb = b.games[i];
+    if (ga.id !== gb.id) return false;
+    if (ga.servers.length !== gb.servers.length) return false;
+    for (let j = 0; j < ga.servers.length; j++) {
+      const sa = ga.servers[j];
+      const sb = gb.servers[j];
+      if (
+        sa.id !== sb.id ||
+        sa.online !== sb.online ||
+        sa.players !== sb.players ||
+        sa.maxPlayers !== sb.maxPlayers ||
+        sa.map !== sb.map ||
+        sa.ping !== sb.ping
+      )
+        return false;
+    }
+  }
+  return true;
+}
+
 export function SystemSection() {
   const { data, error, isLoading } = useSWR<ApiResponse>('/api/servers', fetcher, {
     refreshInterval: 30_000,
     keepPreviousData: true,
-    // Suppress spurious React re-renders when the polled response is byte-for-byte
-    // identical. Stops the 30s "planet snap" the user reported even though the
-    // new vanilla-three Scene no longer rebuilds on data changes.
-    compare: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+    // Shallow compare ignoring updatedAt (unrendered) — avoids JSON.stringify alloc
+    // and the 30s "planet snap" caused by spurious re-renders on identical polls.
+    compare: sameApiSnapshot,
   });
 
   const games: OverlayGame[] = React.useMemo(() => {
@@ -347,7 +375,7 @@ function FullBleedLayout({
         </div>
       ) : (
         <SceneErrorBoundary onError={onErrorBoundary}>
-          <Scene games={sceneGames} />
+          <Scene games={sceneGames} onWebGLFailure={onErrorBoundary} />
         </SceneErrorBoundary>
       )}
 

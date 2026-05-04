@@ -374,9 +374,12 @@ interface ServerBodyProps {
 }
 function ServerBody({ game, server }: ServerBodyProps) {
   const tone = statusOf(server);
-  const connect = game.connectStrings[server.id] ?? '—';
+  const rawConnect = game.connectStrings[server.id];
+  const hasConnect = !!rawConnect;
+  const connect = rawConnect ?? '—';
   const [copied, setCopied] = React.useState<boolean>(false);
   const onCopy = async () => {
+    if (!hasConnect) return;
     if (typeof navigator === 'undefined' || !navigator.clipboard) return;
     try {
       await navigator.clipboard.writeText(connect);
@@ -430,6 +433,7 @@ function ServerBody({ game, server }: ServerBodyProps) {
         <button
           type="button"
           onClick={onCopy}
+          disabled={!hasConnect}
           style={{
             width: '100%',
             background: 'rgba(7,6,12,0.7)',
@@ -439,21 +443,23 @@ function ServerBody({ game, server }: ServerBodyProps) {
             gridTemplateColumns: '1fr auto',
             gap: 8,
             alignItems: 'center',
-            cursor: 'pointer',
+            cursor: hasConnect ? 'pointer' : 'not-allowed',
             fontFamily: 'var(--mono)',
             fontSize: 11,
             color: 'var(--royal-green-neon)',
             textAlign: 'left',
             letterSpacing: '0.08em',
           }}
-          aria-label={`Copy connect address ${connect}`}
+          aria-label={
+            hasConnect ? `Copy connect address ${connect}` : 'No connect address available'
+          }
         >
           <span className="num">{connect}</span>
           <span
             className="eyebrow g"
             style={{ color: copied ? 'var(--royal-green-neon)' : 'var(--ink-dim)' }}
           >
-            {copied ? 'COPIED' : 'COPY ↗'}
+            {!hasConnect ? 'N/A' : copied ? 'COPIED' : 'COPY ↗'}
           </span>
         </button>
       </div>
