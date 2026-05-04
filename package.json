@@ -1,6 +1,6 @@
 {
   "name": "@markbailey/thesoutherncross-uk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "The Southern Cross UK — guild site: live solar-system server hub + Steam roster",
   "keywords": [],
@@ -23,6 +23,7 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
+    "dev:demo": "cross-env DEMO_SERVERS=1 tsx server.ts",
     "build": "next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "typecheck": "tsc --noEmit",

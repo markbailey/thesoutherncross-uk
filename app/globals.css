@@ -244,6 +244,188 @@ body {
   transform-origin: center;
 }
 
+/* Status dot — small colored chip used inside DOM-overlay planet labels.
+   `.dot` (above) is sized 8px and used in HUD legends. `.status-dot` is the
+   smaller variant the design-extract uses inline within text. */
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+  vertical-align: middle;
+}
+.status-dot.on   { background: var(--status-online); box-shadow: 0 0 6px var(--status-online); }
+.status-dot.warn { background: var(--status-warn);   box-shadow: 0 0 6px var(--status-warn); }
+.status-dot.off  { background: var(--status-down);   box-shadow: 0 0 4px var(--status-down); opacity: 0.85; }
+
+/* DOM-overlay planet labels (positioned via Scene render loop, world->screen) */
+.s3-label {
+  --rim: rgba(57, 255, 136, 0.5);
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; transition: opacity 180ms ease-out;
+}
+.s3-label__stem {
+  width: 14px; height: 1px; background: var(--rim);
+  flex-shrink: 0; margin-left: -14px;
+  box-shadow: 0 0 6px var(--rim);
+}
+.s3-label__box {
+  display: inline-flex; flex-direction: column;
+  padding: 6px 10px 5px 10px;
+  background: rgba(7, 6, 12, 0.78);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(57, 255, 136, 0.32);
+  border-left: 2px solid var(--royal-green-neon);
+  box-shadow: 0 0 14px rgba(57, 255, 136, 0.18), 0 2px 20px rgba(0, 0, 0, 0.4);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  transition: border-color 160ms, transform 160ms, box-shadow 160ms;
+  transform-origin: left center;
+}
+.s3-label__code {
+  font-size: 9px; letter-spacing: 0.24em;
+  font-weight: 600; text-transform: uppercase;
+  text-shadow: 0 0 8px currentColor;
+}
+.s3-label__name {
+  font-size: 10px; letter-spacing: 0.14em;
+  color: var(--ink); margin-top: 1px;
+}
+.s3-label__meta {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 9px; letter-spacing: 0.12em;
+  color: var(--ink-dim); margin-top: 3px;
+}
+.s3-label__meta .status-dot { width: 5px; height: 5px; }
+.s3-label__crew  { color: var(--royal-green-neon); }
+.s3-label__sep   { color: var(--ink-faint); }
+.s3-label__moons { color: var(--ink-faint); }
+.s3-label.is-hover .s3-label__box {
+  border-color: var(--royal-green-neon);
+  box-shadow: 0 0 20px rgba(57, 255, 136, 0.35), 0 2px 20px rgba(0, 0, 0, 0.5);
+  transform: translateX(2px);
+}
+.s3-label.is-hover .s3-label__stem {
+  background: var(--royal-green-neon);
+  box-shadow: 0 0 10px var(--royal-green-neon);
+}
+
+/* Slow rotational drift for nebula/background layers (mockup parity). */
+@keyframes cosmicDrift {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.cosmic-drift {
+  animation: cosmicDrift 120s linear infinite;
+  transform-origin: center;
+}
+
+/* Subtle scale + opacity pulse for sun corona overlays (mockup parity). */
+@keyframes coronaPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.85; }
+  50%      { transform: scale(1.04); opacity: 1;    }
+}
+.corona-pulse {
+  animation: coronaPulse 3s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Generic fade-in used for chained CTA reveals after termLine sequence. */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in {
+  animation: fadeIn 600ms ease-out forwards;
+}
+
+/* JoinSection CTA reveal — gated by no-preference so reduced-motion users
+   never render an initial opacity:0 state. Delay matches the boot-log
+   sequence (1700ms last line + ~250ms termLine + ~100ms buffer). */
+@media (prefers-reduced-motion: no-preference) {
+  .cta-fade-in {
+    opacity: 0;
+    animation: fadeIn 600ms ease-out 2050ms forwards;
+  }
+}
+
+/* Site footer — mirrors docs/design.html. Mobile collapses to column +
+   tighter padding; backdrop-filter adds the design's frosted blur. */
+.site-foot {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 32px;
+  border-top: 1px solid var(--hair);
+  background: rgba(7, 6, 12, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.site-foot .credit { color: var(--ink-dim); }
+.site-foot .credit b {
+  color: var(--royal-green-neon);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+@media (max-width: 640px) {
+  .site-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 20px;
+  }
+}
+
+/* hero scroll-cue hover */
+.hero-scroll-cue {
+  transition: box-shadow 220ms cubic-bezier(.2,.7,.2,1),
+              transform 220ms cubic-bezier(.2,.7,.2,1);
+}
+.hero-scroll-cue:hover {
+  box-shadow: 0 0 18px rgba(57, 255, 136, 0.45);
+  transform: translateY(-1px);
+}
+
+/* member-card hover. Why: filter: drop-shadow (not box-shadow) so the glow
+   respects the .hud-panel clip-path polygon. Why no ::before sweep: it would
+   collide with .hud-panel::before which renders the gradient hairline border. */
+.member-card {
+  transition: transform 220ms cubic-bezier(.2,.7,.2,1),
+              filter 220ms cubic-bezier(.2,.7,.2,1);
+}
+.member-card:hover {
+  filter: drop-shadow(0 8px 18px rgba(57, 255, 136, 0.4));
+}
+.member-card.member-card-admin:hover {
+  filter: drop-shadow(0 8px 18px rgba(124, 58, 237, 0.45));
+}
+.member-card.member-card-founder:hover {
+  filter: drop-shadow(0 8px 18px rgba(240, 180, 41, 0.5));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .member-card:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* hud-btn hover */
+@media (prefers-reduced-motion: no-preference) {
+  .hud-btn {
+    transition: background .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .hud-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 12px rgba(57, 255, 136, 0.18), 0 0 22px rgba(57, 255, 136, 0.55);
+  }
+  .hud-btn.purple:hover {
+    box-shadow: inset 0 0 12px rgba(124, 58, 237, 0.22), 0 0 22px rgba(124, 58, 237, 0.55);
+  }
+}
+
 /* Honour OS-level "reduce motion" for every animation + transition the site
    emits. Components that gate JS animations themselves (Starfield rAF loop,
    JoinSection boot-log stagger) still do so — this is the safety net. */
@@ -255,5 +437,10 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+  .cosmic-drift,
+  .corona-pulse,
+  .fade-in {
+    animation: none !important;
   }
 }

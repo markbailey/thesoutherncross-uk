@@ -11,6 +11,7 @@ export interface CameraState {
   /** gameIds whose orbit is frozen — Set so multiple selections compose. */
   pausedOrbits: Set<string>;
   listMode: boolean;
+  userZoom: number;
 
   selectPlanet: (gameId: string) => void;
   selectServer: (gameId: string, serverId: string) => void;
@@ -20,7 +21,14 @@ export interface CameraState {
   reset: () => void;
   toggleListMode: () => void;
   setListMode: (on: boolean) => void;
+  setUserZoom: (z: number) => void;
 }
+
+export const SYSTEM_CAMERA_BASE_RADIUS = 620;
+export const SYSTEM_CAMERA_RADIUS_MIN = 18;
+export const SYSTEM_CAMERA_RADIUS_MAX = 1400;
+export const SYSTEM_USER_ZOOM_MIN = SYSTEM_CAMERA_RADIUS_MIN / SYSTEM_CAMERA_BASE_RADIUS;
+export const SYSTEM_USER_ZOOM_MAX = SYSTEM_CAMERA_RADIUS_MAX / SYSTEM_CAMERA_BASE_RADIUS;
 
 export const useCameraState = create<CameraState>((set) => ({
   view: 'system',
@@ -28,6 +36,7 @@ export const useCameraState = create<CameraState>((set) => ({
   focusedServerId: null,
   pausedOrbits: new Set<string>(),
   listMode: false,
+  userZoom: 1,
 
   selectPlanet: (gameId) =>
     set((s) => {
@@ -80,8 +89,10 @@ export const useCameraState = create<CameraState>((set) => ({
       focusedGameId: null,
       focusedServerId: null,
       pausedOrbits: new Set<string>(),
+      userZoom: 1,
     }),
 
   toggleListMode: () => set((s) => ({ listMode: !s.listMode })),
   setListMode: (on) => set({ listMode: on }),
+  setUserZoom: (z) => set({ userZoom: Math.max(SYSTEM_USER_ZOOM_MIN, Math.min(SYSTEM_USER_ZOOM_MAX, z)) }),
 }));

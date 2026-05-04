@@ -26,9 +26,9 @@ test.describe('@visual system section', () => {
     await waitForReady(page);
 
     const system = page.locator('#system');
-    await expect(system).toContainText('SYSTEM OVERVIEW');
-    await expect(system).toContainText('WORLDS');
-    await expect(system).toContainText('Minecraft');
+    await expect(system).toContainText('ORBITAL RECON');
+    await expect(system).toContainText(/CLICK A PLANET TO ZOOM IN/i);
+    await expect(system).toContainText('ONLINE');
     await expect(system).toHaveScreenshot('system-populated.png');
   });
 

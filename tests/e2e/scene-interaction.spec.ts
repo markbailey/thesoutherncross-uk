@@ -16,11 +16,11 @@ test.describe('@e2e scene interaction', () => {
     const system = page.locator('#system');
     await expect(system).toBeVisible();
 
-    // System body lists worlds as buttons — DOM-driven path is reliable across
-    // canvas/list-mode/empty-state branches.
-    const minecraftRow = system.getByRole('button', { name: /Minecraft/i }).first();
-    await expect(minecraftRow).toBeVisible();
-    await minecraftRow.click();
+    // Planet selection in system view is via the in-scene clickable label
+    // (HudOverlay no longer renders until a planet/server is focused).
+    const minecraftLabel = system.locator('[data-planet-id="minecraft"]').first();
+    await expect(minecraftLabel).toBeVisible();
+    await minecraftLabel.click();
 
     await expect(page).toHaveURL(/#\/servers\/minecraft$/);
     // Breadcrumb shows the selected game uppercased.
@@ -72,7 +72,7 @@ test.describe('@e2e scene interaction', () => {
     await waitForReady(page);
 
     const system = page.locator('#system');
-    await system.getByRole('button', { name: /Minecraft/i }).first().click();
+    await system.locator('[data-planet-id="minecraft"]').first().click();
     await expect(page).toHaveURL(/#\/servers\/minecraft$/);
 
     // Now in PlanetBody — instance buttons named with server name + status pill.

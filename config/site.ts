@@ -16,7 +16,7 @@ export const SITE: Site = {
   url: 'https://thesoutherncross.uk',
   name: 'The Southern Cross UK',
   description:
-    'Guild ops dashboard from orbit — live game server status and Steam roster for The Southern Cross UK, EU-West since 2015.',
+    'Guild ops dashboard from orbit — live game server status and Steam roster for The Southern Cross UK, EU-West since 2006.',
   ogImage: '/opengraph-image',
   themeColor: '#07060c',
 } as const;
@@ -24,3 +24,6 @@ export const SITE: Site = {
 export const BUILD_SHA: string = process.env['NEXT_PUBLIC_BUILD_SHA'] ?? 'dev';
 export const BUILD_DATE: string =
   process.env['NEXT_PUBLIC_BUILD_DATE'] ?? new Date(0).toISOString();
+// Injected at build time via next.config.ts env from package.json so the
+// browser bundle never sees the rest of package.json (scripts, deps, etc.).
+export const VERSION: string = process.env['NEXT_PUBLIC_VERSION'] ?? 'dev';

@@ -31,9 +31,14 @@ function inTestMode(): boolean {
 
 export function JoinSection() {
   const [shown, setShown] = React.useState(0);
+  // testMode suppresses the .cta-fade-in class so Playwright sees the CTAs
+  // immediately. Reduced-motion is handled by CSS @media — no JS gate needed.
+  const [testMode, setTestMode] = React.useState(false);
 
   React.useEffect(() => {
-    if (prefersReducedMotion() || inTestMode()) {
+    const skipAnimation = prefersReducedMotion() || inTestMode();
+    setTestMode(inTestMode());
+    if (skipAnimation) {
       setShown(LINES.length);
       return;
     }
@@ -44,6 +49,8 @@ export function JoinSection() {
       for (const t of timers) clearTimeout(t);
     };
   }, []);
+
+  const ctaFadeClass = testMode ? '' : ' cta-fade-in';
 
   return (
     <section
@@ -164,7 +171,7 @@ export function JoinSection() {
                 href={GUILD.join.steamGroupUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hud-btn"
+                className={`hud-btn${ctaFadeClass}`}
                 style={{
                   textDecoration: 'none',
                   padding: '14px 24px',
@@ -185,7 +192,7 @@ export function JoinSection() {
                 href={GUILD.join.discordInviteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hud-btn purple"
+                className={`hud-btn purple${ctaFadeClass}`}
                 style={{
                   textDecoration: 'none',
                   padding: '14px 24px',
