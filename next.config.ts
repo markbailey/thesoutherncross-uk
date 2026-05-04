@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 import { execSync } from 'node:child_process';
-import pkg from './package.json' with { type: 'json' };
+import { createRequire } from 'node:module';
+
+const pkg = createRequire(import.meta.url)('./package.json') as { version: string };
 
 function shortSha(): string {
   if (process.env.NEXT_PUBLIC_BUILD_SHA) return process.env.NEXT_PUBLIC_BUILD_SHA;
