@@ -42,10 +42,18 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
   const profileUrl = `https://steamcommunity.com/profiles/${member.steamid}`;
   const closeBtnRef = React.useRef<HTMLButtonElement>(null);
 
+  // Hold latest onClose in a ref so the mount effect stays `[]` and we don't
+  // tear down the keydown listener / re-lock body scroll / re-steal focus
+  // every time the parent re-renders with a new inline arrow.
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   React.useEffect(() => {
     closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
@@ -54,7 +62,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onClose]);
+  }, []);
 
   const statusText = online && member.game
     ? `In-game · ${member.game}`

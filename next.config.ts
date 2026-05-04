@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import { execSync } from 'node:child_process';
+import pkg from './package.json' with { type: 'json' };
 
 function shortSha(): string {
   if (process.env.NEXT_PUBLIC_BUILD_SHA) return process.env.NEXT_PUBLIC_BUILD_SHA;
@@ -19,6 +20,7 @@ const config: NextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_SHA: shortSha(),
     NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
+    NEXT_PUBLIC_VERSION: pkg.version,
   },
   images: {
     remotePatterns: [

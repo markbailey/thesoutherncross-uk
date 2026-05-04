@@ -1,7 +1,8 @@
 /**
- * Source of truth for all guild copy rendered on the site.
- * Every user-facing string on the site should resolve to a field in `GUILD`.
- * See Phase 1 of docs/plan — "config/guild.ts".
+ * Source of truth for guild identity, comms, stats, join CTA, and roles.
+ * Most user-facing strings resolve to `GUILD`; structural section copy
+ * (AboutSection mission brief / house rules, Footer text) is intentionally
+ * inlined in components where it carries layout structure.
  */
 
 export type GuildComms = {

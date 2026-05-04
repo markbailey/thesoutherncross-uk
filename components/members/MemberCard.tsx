@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { AstronautAvatar } from './AstronautAvatar';
+import { GUILD } from '../../config/guild';
 import type { MemberRole } from '../../lib/member-roles';
 
 export type { MemberRole };
@@ -53,7 +54,7 @@ const ROLE_VISUALS: Record<MemberRole, RoleVisuals> = {
     eyebrowColor: FOUNDER_ACCENT,
     eyebrowShadow: `0 0 6px ${FOUNDER_ACCENT}`,
     iconKind: 'crown',
-    eyebrowText: (last4) => `FOUNDER · SCUK ${last4}`,
+    eyebrowText: (last4) => `FOUNDER · ${GUILD.shortName} ${last4}`,
   },
   // Mirrors design: admins + mods both get the purple gradient; only the
   // accent (triangle, avatar ring, name icon, eyebrow) changes.
@@ -69,7 +70,7 @@ const ROLE_VISUALS: Record<MemberRole, RoleVisuals> = {
     eyebrowColor: 'var(--royal-purple-neon)',
     eyebrowShadow: '0 0 6px var(--royal-purple-neon)',
     iconKind: 'star',
-    eyebrowText: (last4) => `ADMIN · SCUK ${last4}`,
+    eyebrowText: (last4) => `ADMIN · ${GUILD.shortName} ${last4}`,
   },
   moderator: {
     accent: 'var(--royal-green-neon)',
@@ -83,7 +84,7 @@ const ROLE_VISUALS: Record<MemberRole, RoleVisuals> = {
     eyebrowColor: 'var(--royal-green-neon)',
     eyebrowShadow: '0 0 6px var(--royal-green-neon)',
     iconKind: 'star',
-    eyebrowText: (last4) => `MOD · SCUK ${last4}`,
+    eyebrowText: (last4) => `MOD · ${GUILD.shortName} ${last4}`,
   },
   member: {
     accent: 'var(--royal-purple-neon)',
@@ -97,7 +98,7 @@ const ROLE_VISUALS: Record<MemberRole, RoleVisuals> = {
     eyebrowColor: 'var(--ink-faint)',
     eyebrowShadow: undefined,
     iconKind: null,
-    eyebrowText: (last4) => `SCUK · ${last4}`,
+    eyebrowText: (last4) => `${GUILD.shortName} · ${last4}`,
   },
 };
 
