@@ -48,6 +48,16 @@ function statusOf(s: SceneGameServer): 'on' | 'warn' | 'off' {
   return 'on';
 }
 
+// Same LCG as makePlanetTexture's inline PRNG — hoisted so makeSunTexture and
+// makeStarfield can share it for deterministic visuals when freeze is true.
+function makeSeededRand(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
 // ── Procedural textures (ported from .design-extract/solar-system-3d.jsx) ──
 function makePlanetTexture(hue: number): THREE.CanvasTexture {
   const w = 512,
@@ -124,7 +134,7 @@ function makePlanetTexture(hue: number): THREE.CanvasTexture {
   return tex;
 }
 
-function makeSunTexture(): THREE.CanvasTexture {
+function makeSunTexture(rand: () => number = Math.random): THREE.CanvasTexture {
   const w = 512,
     h = 256;
   const c = document.createElement('canvas');
@@ -140,11 +150,11 @@ function makeSunTexture(): THREE.CanvasTexture {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
   for (let i = 0; i < 400; i++) {
-    const x = Math.random() * w,
-      y = Math.random() * h;
-    ctx.fillStyle = `rgba(255,200,120,${Math.random() * 0.25})`;
+    const x = rand() * w,
+      y = rand() * h;
+    ctx.fillStyle = `rgba(255,200,120,${rand() * 0.25})`;
     ctx.beginPath();
-    ctx.arc(x, y, 1 + Math.random() * 3, 0, Math.PI * 2);
+    ctx.arc(x, y, 1 + rand() * 3, 0, Math.PI * 2);
     ctx.fill();
   }
   const tex = new THREE.CanvasTexture(c);
@@ -199,7 +209,7 @@ interface StarLayerSpec {
   milkyWay?: boolean;
 }
 
-function makeStarfield(): THREE.Group {
+function makeStarfield(rand: () => number = Math.random): THREE.Group {
   const group = new THREE.Group();
   const sprite = makeStarSprite();
   const galTilt = 0.35;
@@ -217,11 +227,11 @@ function makeStarfield(): THREE.Group {
         y = 0,
         z = 0;
       if (spec.milkyWay) {
-        const bias = Math.pow(Math.random(), 2.2);
-        const u = (Math.random() * 2 - 1) * (0.35 - bias * 0.3);
-        const theta = Math.random() * Math.PI * 2;
+        const bias = Math.pow(rand(), 2.2);
+        const u = (rand() * 2 - 1) * (0.35 - bias * 0.3);
+        const theta = rand() * Math.PI * 2;
         const r = Math.sqrt(1 - u * u);
-        const R = spec.radiusMin + Math.random() * (spec.radiusMax - spec.radiusMin);
+        const R = spec.radiusMin + rand() * (spec.radiusMax - spec.radiusMin);
         const x0 = Math.cos(theta) * r * R;
         const y0 = u * R;
         const z0 = Math.sin(theta) * r * R;
@@ -235,10 +245,10 @@ function makeStarfield(): THREE.Group {
         y = x0 * sinR + y1 * cosR;
         z = z2;
       } else {
-        const u = Math.random() * 2 - 1;
-        const theta = Math.random() * Math.PI * 2;
+        const u = rand() * 2 - 1;
+        const theta = rand() * Math.PI * 2;
         const r = Math.sqrt(1 - u * u);
-        const R = spec.radiusMin + Math.random() * (spec.radiusMax - spec.radiusMin);
+        const R = spec.radiusMin + rand() * (spec.radiusMax - spec.radiusMin);
         x = Math.cos(theta) * r * R;
         y = u * R;
         z = Math.sin(theta) * r * R;
@@ -246,14 +256,14 @@ function makeStarfield(): THREE.Group {
       pos[i * 3] = x;
       pos[i * 3 + 1] = y;
       pos[i * 3 + 2] = z;
-      const mag = Math.pow(Math.random(), 3.5);
+      const mag = Math.pow(rand(), 3.5);
       siz[i] = spec.sizeMin + mag * (spec.sizeMax - spec.sizeMin);
-      const tint = Math.random();
+      const tint = rand();
       let r2: number, g2: number, b2: number;
       if (spec.milkyWay) {
-        r2 = 0.55 + Math.random() * 0.25;
-        g2 = 0.35 + Math.random() * 0.25;
-        b2 = 0.75 + Math.random() * 0.25;
+        r2 = 0.55 + rand() * 0.25;
+        g2 = 0.35 + rand() * 0.25;
+        b2 = 0.75 + rand() * 0.25;
       } else if (tint < 0.04) {
         r2 = 1.0;
         g2 = 0.55;
@@ -271,7 +281,7 @@ function makeStarfield(): THREE.Group {
         g2 = 1.0;
         b2 = 0.7;
       } else {
-        const w = 0.78 + Math.random() * 0.22;
+        const w = 0.78 + rand() * 0.22;
         r2 = w;
         g2 = w;
         b2 = w;
@@ -279,7 +289,7 @@ function makeStarfield(): THREE.Group {
       col[i * 3] = r2;
       col[i * 3 + 1] = g2;
       col[i * 3 + 2] = b2;
-      pha[i] = Math.random() * Math.PI * 2;
+      pha[i] = rand() * Math.PI * 2;
     }
     geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -482,6 +492,11 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     camera.position.set(0, 180, 520);
     camera.lookAt(0, 0, 0);
 
+    // Cache CSS dims so the per-frame label loop doesn't have to call
+    // getBoundingClientRect() (forces layout). Updated in onResize.
+    let cssW = initialW;
+    let cssH = initialH;
+
     // Lighting
     const sunLight = new THREE.PointLight(0xfff3d0, 4.2, 0, 0);
     sunLight.position.set(0, 0, 0);
@@ -501,7 +516,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     const createdTextures: THREE.Texture[] = [];
 
     // Starfield
-    const stars = makeStarfield();
+    const stars = makeStarfield(freeze ? makeSeededRand(1) : undefined);
     scene.add(stars);
     if (stars.userData.sprite instanceof THREE.Texture) {
       createdTextures.push(stars.userData.sprite);
@@ -510,7 +525,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     // Sun
     const sunGroup = new THREE.Group();
     const sunGeom = new THREE.SphereGeometry(14, 48, 48);
-    const sunTex = makeSunTexture();
+    const sunTex = makeSunTexture(freeze ? makeSeededRand(1) : undefined);
     createdTextures.push(sunTex);
     const sunMat = new THREE.MeshBasicMaterial({ map: sunTex });
     const sun = new THREE.Mesh(sunGeom, sunMat);
@@ -767,6 +782,8 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     const onResize = () => {
       const w = container.clientWidth || 1,
         h = container.clientHeight || 1;
+      cssW = w;
+      cssH = h;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
@@ -1034,9 +1051,8 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
 
       // Position labels (world -> screen)
       if (labels.length) {
-        const rect = renderer.domElement.getBoundingClientRect();
-        const hw = rect.width / 2;
-        const hh = rect.height / 2;
+        const hw = cssW / 2;
+        const hh = cssH / 2;
         const camToSun = scratchA.copy(sunPos).sub(camera.position).length();
         // Sun projection is identical for every label this frame — compute once.
         scratchSunProj.copy(sunPos).project(camera);
@@ -1056,6 +1072,9 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
           const visibleNow = !behind && !occluded && !anySelected;
           lb.el.style.opacity = visibleNow ? '1' : '0';
           lb.el.style.pointerEvents = visibleNow ? 'auto' : 'none';
+          lb.el.tabIndex = visibleNow ? 0 : -1;
+          lb.el.setAttribute('aria-hidden', visibleNow ? 'false' : 'true');
+          lb.el.disabled = !visibleNow;
           lb.el.style.transform = `translate3d(${Math.round(x + 14)}px, ${Math.round(y - 26)}px, 0)`;
           lb.el.classList.toggle('is-selected', isSelected);
         }

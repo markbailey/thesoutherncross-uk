@@ -55,9 +55,10 @@ const CONNECT_STRINGS: Record<string, string> = (() => {
   return out;
 })();
 
-// Shallow structural compare for SWR. Ignores `updatedAt` (top-level + per-server)
-// because it's not rendered anywhere — diffing it triggers spurious re-renders
-// every poll. JSON.stringify was the prior approach; this avoids the alloc.
+// Shallow structural compare for SWR. Compares every rendered field
+// (game/server names, planet visuals, server status/players/map/ping) and
+// ignores only `updatedAt` (top-level + per-server) since it's not rendered —
+// diffing it would trigger spurious re-renders every poll without affecting UI.
 function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
@@ -65,13 +66,22 @@ function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined)
   for (let i = 0; i < a.games.length; i++) {
     const ga = a.games[i];
     const gb = b.games[i];
-    if (ga.id !== gb.id) return false;
+    if (
+      ga.id !== gb.id ||
+      ga.name !== gb.name ||
+      ga.planet.color !== gb.planet.color ||
+      ga.planet.size !== gb.planet.size ||
+      ga.planet.orbitRadius !== gb.planet.orbitRadius ||
+      ga.planet.orbitSpeed !== gb.planet.orbitSpeed
+    )
+      return false;
     if (ga.servers.length !== gb.servers.length) return false;
     for (let j = 0; j < ga.servers.length; j++) {
       const sa = ga.servers[j];
       const sb = gb.servers[j];
       if (
         sa.id !== sb.id ||
+        sa.name !== sb.name ||
         sa.online !== sb.online ||
         sa.players !== sb.players ||
         sa.maxPlayers !== sb.maxPlayers ||
