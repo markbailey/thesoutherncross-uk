@@ -21,17 +21,23 @@ export interface OrbitProps {
  */
 export function Orbit({ radius, attenuate = 1, period = 10 }: OrbitProps) {
   const matRef = React.useRef<THREE.LineBasicMaterial>(null);
-  const reducedRef = React.useRef<boolean>(false);
+  // Initialise synchronously so the very first useFrame tick honours
+  // prefers-reduced-motion instead of running a pulse for one frame.
+  const reducedRef = React.useRef<boolean>(
+    typeof window !== 'undefined' &&
+      Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  );
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    reducedRef.current = Boolean(mq?.matches);
+    if (!mq) return;
+    reducedRef.current = mq.matches;
     const onChange = (e: MediaQueryListEvent) => {
       reducedRef.current = e.matches;
     };
-    mq?.addEventListener?.('change', onChange);
-    return () => mq?.removeEventListener?.('change', onChange);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
   }, []);
 
   const points = React.useMemo(() => {
