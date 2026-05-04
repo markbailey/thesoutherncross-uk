@@ -1,4 +1,5 @@
 import { GAMES } from '../../../config/servers';
+import { buildDemoServersResponse } from '../../../config/demo-servers';
 import { getDb } from '../../../lib/db';
 import { jsonNoStore } from '../../../lib/api-helpers';
 import { childLogger } from '../../../lib/logger';
@@ -19,6 +20,12 @@ type StatusRow = {
 const log = childLogger({ mod: 'api/servers' });
 
 export function GET(): Response {
+  // DEMO_SERVERS=1 short-circuits the DB read and returns a canned dataset
+  // so the System section can be shown without configured hosts or pollers.
+  if (process.env.DEMO_SERVERS === '1') {
+    return jsonNoStore(buildDemoServersResponse());
+  }
+
   try {
     const db = getDb();
     const rows = db
