@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { HudPanel, HudButton, Pill, Eyebrow, HairlineDivider } from '../hud';
+import { HudButton, Pill } from '../hud';
 import { useCameraState } from './useCameraState';
 
 export interface OverlayServer {
@@ -40,6 +40,15 @@ function shortPing(ping: number | null): string {
   return `${ping}`;
 }
 
+/**
+ * Right-side floating HUD panel. Slides in when a planet/server is focused,
+ * shows the system overview otherwise. Preserves the existing test contract:
+ *   - .crumb shows planet/server names uppercased
+ *   - "ZOOM OUT" button when not on system view
+ *   - "LIST" / "SCENE" toggle button
+ *   - planet buttons named after each game
+ *   - server buttons named after each instance
+ */
 export function HudOverlay({ games, loading = false, error = false }: HudOverlayProps) {
   const view = useCameraState((s) => s.view);
   const focusedGameId = useCameraState((s) => s.focusedGameId);
@@ -56,49 +65,86 @@ export function HudOverlay({ games, loading = false, error = false }: HudOverlay
       ? focusedGame.servers.find((s) => s.id === focusedServerId) ?? null
       : null;
 
+  // A unique key per (view, focused) tuple so the slide-in keyframe replays
+  // when the user enters a new focus state — matches the design's animation feel.
+  const animKey = `${view}:${focusedGameId ?? ''}:${focusedServerId ?? ''}`;
+
   return (
-    <HudPanel scanlines style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div
+      key={animKey}
+      style={{
+        position: 'absolute',
+        top: 72,
+        right: 24,
+        bottom: 72,
+        width: 360,
+        maxWidth: 'calc(100vw - 48px)',
+        zIndex: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        animation: 'hudSlideIn 320ms ease-out',
+        pointerEvents: 'auto',
+      }}
+    >
+      <style>{`
+        @keyframes hudSlideIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+
       <div
+        className="hud-panel scanlines"
         style={{
           position: 'relative',
-          padding: 18,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
+          flex: '1 1 auto',
           minHeight: 0,
-          flex: 1,
+          overflow: 'hidden',
         }}
       >
-        <Header
-          view={view}
-          gameName={focusedGame?.name}
-          serverName={focusedServer?.name}
-          onDeselect={deselect}
-          onToggleList={toggleListMode}
-          listMode={listMode}
-        />
-        <HairlineDivider />
-
-        {loading ? (
-          <div className="eyebrow" style={{ color: 'var(--royal-green-neon)' }}>
-            ESTABLISHING UPLINK…
-          </div>
-        ) : error ? (
-          <div className="eyebrow" style={{ color: 'var(--status-down)' }}>
-            UPLINK DEGRADED · RETRYING
-          </div>
-        ) : view === 'system' || !focusedGame ? (
-          <SystemBody games={games} onSelect={(id) => selectPlanet(id)} />
-        ) : view === 'planet' || !focusedServer ? (
-          <PlanetBody
-            game={focusedGame}
-            onSelectServer={(sid) => selectServer(focusedGame.id, sid)}
+        <div
+          style={{
+            position: 'relative',
+            padding: 18,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            height: '100%',
+            minHeight: 0,
+          }}
+        >
+          <Header
+            view={view}
+            gameName={focusedGame?.name}
+            serverName={focusedServer?.name}
+            onDeselect={deselect}
+            onToggleList={toggleListMode}
+            listMode={listMode}
           />
-        ) : (
-          <ServerBody game={focusedGame} server={focusedServer} />
-        )}
+          <hr className="hr-hair" style={{ margin: 0 }} />
+
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            {loading ? (
+              <div className="eyebrow g">ESTABLISHING UPLINK…</div>
+            ) : error ? (
+              <div className="eyebrow" style={{ color: 'var(--status-down)' }}>
+                UPLINK DEGRADED · RETRYING
+              </div>
+            ) : view === 'system' || !focusedGame ? (
+              <SystemBody games={games} onSelect={(id) => selectPlanet(id)} />
+            ) : view === 'planet' || !focusedServer ? (
+              <PlanetBody
+                game={focusedGame}
+                onSelectServer={(sid) => selectServer(focusedGame.id, sid)}
+              />
+            ) : (
+              <ServerBody game={focusedGame} server={focusedServer} />
+            )}
+          </div>
+        </div>
       </div>
-    </HudPanel>
+    </div>
   );
 }
 
@@ -114,7 +160,7 @@ function Header({ view, gameName, serverName, onDeselect, onToggleList, listMode
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
       <div className="crumb" style={{ fontSize: 10 }}>
-        <span>SYSTEM</span>
+        <span>INTEL</span>
         {gameName ? (
           <>
             <span className="sep">/</span>
@@ -122,7 +168,12 @@ function Header({ view, gameName, serverName, onDeselect, onToggleList, listMode
               {gameName.toUpperCase()}
             </b>
           </>
-        ) : null}
+        ) : (
+          <>
+            <span className="sep">/</span>
+            <b>SYSTEM</b>
+          </>
+        )}
         {serverName ? (
           <>
             <span className="sep">/</span>
@@ -155,7 +206,10 @@ function SystemBody({ games, onSelect }: SystemBodyProps) {
     0,
   );
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="eyebrow p" style={{ fontSize: 9 }}>
+        // SYSTEM OVERVIEW
+      </div>
       <div className="display" style={{ fontSize: 18, letterSpacing: '0.06em' }}>
         SYSTEM OVERVIEW
       </div>
@@ -166,7 +220,9 @@ function SystemBody({ games, onSelect }: SystemBodyProps) {
           { label: 'STATUS', value: onlineNodes > 0 ? 'LIVE' : 'IDLE' },
         ]}
       />
-      <Eyebrow tone="green">// WORLDS</Eyebrow>
+      <div className="eyebrow g" style={{ fontSize: 9 }}>
+        // WORLDS
+      </div>
       <ul
         style={{
           listStyle: 'none',
@@ -174,9 +230,7 @@ function SystemBody({ games, onSelect }: SystemBodyProps) {
           padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: 4,
-          overflow: 'auto',
-          minHeight: 0,
+          gap: 6,
         }}
       >
         {games.map((g) => {
@@ -186,20 +240,24 @@ function SystemBody({ games, onSelect }: SystemBodyProps) {
               <button
                 type="button"
                 onClick={() => onSelect(g.id)}
-                className="row"
                 style={{
                   width: '100%',
-                  background: 'transparent',
-                  border: '1px solid var(--hair-p)',
+                  textAlign: 'left',
+                  background: 'rgba(20,16,36,0.5)',
+                  border: '1px solid var(--hair)',
                   color: 'var(--ink)',
                   padding: '8px 10px',
                   display: 'flex',
                   justifyContent: 'space-between',
+                  alignItems: 'center',
                   fontFamily: 'var(--mono)',
                   fontSize: 11,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   cursor: 'pointer',
+                  clipPath:
+                    'polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px)',
+                  transition: 'all 120ms',
                 }}
               >
                 <span>{g.name}</span>
@@ -223,8 +281,19 @@ function PlanetBody({ game, onSelectServer }: PlanetBodyProps) {
   const players = game.servers.reduce((s, n) => s + (n.players ?? 0), 0);
   const max = game.servers.reduce((s, n) => s + (n.maxPlayers ?? 0), 0);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
-      <div className="display" style={{ fontSize: 20, letterSpacing: '0.05em' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="eyebrow p" style={{ fontSize: 9 }}>
+        // TARGET ACQUIRED
+      </div>
+      <div
+        className="display"
+        style={{
+          fontSize: 22,
+          letterSpacing: '0.08em',
+          color: 'var(--ink)',
+          textShadow: '0 0 14px rgba(57,255,136,0.4)',
+        }}
+      >
         {game.name}
       </div>
       <StatGrid
@@ -234,7 +303,9 @@ function PlanetBody({ game, onSelectServer }: PlanetBodyProps) {
           { label: 'REGION', value: 'EU-W' },
         ]}
       />
-      <Eyebrow tone="green">// INSTANCES</Eyebrow>
+      <div className="eyebrow g" style={{ fontSize: 9 }}>
+        // INSTANCES
+      </div>
       <ul
         style={{
           listStyle: 'none',
@@ -243,8 +314,6 @@ function PlanetBody({ game, onSelectServer }: PlanetBodyProps) {
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          overflow: 'auto',
-          minHeight: 0,
         }}
       >
         {game.servers.map((s) => {
@@ -256,28 +325,40 @@ function PlanetBody({ game, onSelectServer }: PlanetBodyProps) {
                 onClick={() => onSelectServer(s.id)}
                 style={{
                   width: '100%',
-                  background: 'transparent',
+                  textAlign: 'left',
+                  background: 'rgba(20,16,36,0.5)',
                   border: '1px solid var(--hair)',
                   padding: '8px 10px',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto auto',
-                  gap: 8,
+                  display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
+                  gap: 8,
                   cursor: 'pointer',
                   fontFamily: 'var(--mono)',
                   fontSize: 11,
                   color: 'var(--ink)',
-                  textAlign: 'left',
+                  clipPath:
+                    'polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px)',
+                  transition: 'all 120ms',
                 }}
               >
-                <span style={{ letterSpacing: '0.08em' }}>{s.name}</span>
-                <span
-                  className="num"
-                  style={{ color: 'var(--ink-dim)', fontSize: 10 }}
-                >
-                  {s.players ?? 0}/{s.maxPlayers ?? 0}
-                </span>
-                <Pill tone={tone}>{tone === 'on' ? 'ONLINE' : tone === 'warn' ? 'LAGGY' : 'OFFLINE'}</Pill>
+                <div>
+                  <div style={{ letterSpacing: '0.14em' }}>{s.name}</div>
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: 'var(--ink-faint)',
+                      letterSpacing: '0.16em',
+                      marginTop: 2,
+                    }}
+                  >
+                    {s.ping != null ? `${s.ping}ms` : 'OFFLINE'} ·{' '}
+                    {s.players ?? 0}/{s.maxPlayers ?? 0}
+                  </div>
+                </div>
+                <Pill tone={tone}>
+                  {tone === 'on' ? 'ONLINE' : tone === 'warn' ? 'LAGGY' : 'OFFLINE'}
+                </Pill>
               </button>
             </li>
           );
@@ -302,22 +383,27 @@ function ServerBody({ game, server }: ServerBodyProps) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
-      // Silent — clipboard refused, user copies by hand.
+      // Silent
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="eyebrow g" style={{ fontSize: 9 }}>
+        // INBOUND LOCK
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div className="display" style={{ fontSize: 18, letterSpacing: '0.06em' }}>
+        <div className="display" style={{ fontSize: 18, letterSpacing: '0.12em' }}>
           {server.name}
         </div>
-        <Pill tone={tone}>{tone === 'on' ? 'ONLINE' : tone === 'warn' ? 'LAGGY' : 'OFFLINE'}</Pill>
+        <Pill tone={tone}>
+          {tone === 'on' ? 'ONLINE' : tone === 'warn' ? 'LAGGY' : 'OFFLINE'}
+        </Pill>
       </div>
       <StatGrid
         items={[
           {
-            label: 'PLAYERS',
+            label: 'CREW',
             value: `${server.players ?? 0}`,
             sub: `/ ${server.maxPlayers ?? 0}`,
           },
@@ -338,16 +424,16 @@ function ServerBody({ game, server }: ServerBodyProps) {
         </div>
       ) : null}
       <div>
-        <Eyebrow tone="green" style={{ marginBottom: 6, display: 'block' }}>
+        <div className="eyebrow g" style={{ fontSize: 9, marginBottom: 6 }}>
           // CONNECT
-        </Eyebrow>
+        </div>
         <button
           type="button"
           onClick={onCopy}
           style={{
             width: '100%',
-            background: 'rgba(124,58,237,0.08)',
-            border: '1px solid var(--hair-p)',
+            background: 'rgba(7,6,12,0.7)',
+            border: '1px dashed var(--hair)',
             padding: '10px 12px',
             display: 'grid',
             gridTemplateColumns: '1fr auto',
@@ -355,13 +441,14 @@ function ServerBody({ game, server }: ServerBodyProps) {
             alignItems: 'center',
             cursor: 'pointer',
             fontFamily: 'var(--mono)',
-            fontSize: 12,
-            color: 'var(--ink)',
+            fontSize: 11,
+            color: 'var(--royal-green-neon)',
             textAlign: 'left',
+            letterSpacing: '0.08em',
           }}
           aria-label={`Copy connect address ${connect}`}
         >
-          <span className="num" style={{ letterSpacing: '0.08em' }}>{connect}</span>
+          <span className="num">{connect}</span>
           <span
             className="eyebrow g"
             style={{ color: copied ? 'var(--royal-green-neon)' : 'var(--ink-dim)' }}
@@ -369,25 +456,6 @@ function ServerBody({ game, server }: ServerBodyProps) {
             {copied ? 'COPIED' : 'COPY ↗'}
           </span>
         </button>
-      </div>
-      <div>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            marginBottom: 4,
-          }}
-        >
-          <Eyebrow tone="green">// 24H</Eyebrow>
-          <span
-            className="num"
-            style={{ color: 'var(--ink-faint)', fontSize: 9, letterSpacing: '0.18em' }}
-          >
-            DATA ROLLING
-          </span>
-        </div>
-        <SparklinePlaceholder />
       </div>
     </div>
   );
@@ -406,16 +474,21 @@ function StatGrid({ items }: { items: StatGridItem[] }) {
           key={it.label}
           style={{
             border: '1px solid var(--hair-p)',
+            borderLeft: '2px solid var(--royal-purple-neon)',
             padding: '8px 10px',
           }}
         >
-          <div className="eyebrow" style={{ marginBottom: 4 }}>{it.label}</div>
           <div
-            className="num"
+            className="eyebrow"
+            style={{ fontSize: 8, marginBottom: 4, color: 'var(--ink-faint)' }}
+          >
+            {it.label}
+          </div>
+          <div
+            className="num display"
             style={{
-              fontFamily: 'var(--display)',
-              fontSize: 18,
-              letterSpacing: '0.04em',
+              fontSize: 16,
+              letterSpacing: '0.06em',
               color: 'var(--ink)',
             }}
           >
@@ -425,7 +498,7 @@ function StatGrid({ items }: { items: StatGridItem[] }) {
                 className="num"
                 style={{
                   fontFamily: 'var(--mono)',
-                  fontSize: 11,
+                  fontSize: 10,
                   color: 'var(--ink-faint)',
                   marginLeft: 4,
                 }}
@@ -437,34 +510,6 @@ function StatGrid({ items }: { items: StatGridItem[] }) {
         </div>
       ))}
     </div>
-  );
-}
-
-function SparklinePlaceholder() {
-  // Static decorative curve until v2 wires real history. Faint to read as a
-  // placeholder, not a chart you should trust.
-  const reactId = React.useId();
-  const gradientId = `spark-fill-${reactId.replace(/:/g, '')}`;
-  return (
-    <svg viewBox="0 0 300 54" width="100%" height="54" aria-hidden>
-      <defs>
-        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#39ff88" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#39ff88" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M0,40 C30,38 50,28 70,30 C95,32 110,18 140,22 C175,26 195,14 220,16 C250,18 270,26 300,20 L300,54 L0,54 Z"
-        fill={`url(#${gradientId})`}
-      />
-      <path
-        d="M0,40 C30,38 50,28 70,30 C95,32 110,18 140,22 C175,26 195,14 220,16 C250,18 270,26 300,20"
-        fill="none"
-        stroke="#39ff88"
-        strokeOpacity="0.7"
-        strokeWidth="1"
-      />
-    </svg>
   );
 }
 
