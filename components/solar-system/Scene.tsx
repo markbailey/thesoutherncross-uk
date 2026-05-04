@@ -334,6 +334,9 @@ function makeStarfield(): THREE.Group {
   group.userData.tick = (t: number) => {
     for (const m of mats) m.uniforms.uTime.value = t;
   };
+  // Expose the shared star-sprite texture so the Scene cleanup can dispose it
+  // explicitly — material.dispose() does not free its bound textures.
+  group.userData.sprite = sprite;
   return group;
 }
 
@@ -422,18 +425,24 @@ export function Scene({ games }: SceneProps) {
     visibleRef.current = visible;
   }, [visible]);
 
-  // Build the scene exactly once after mount. Subsequent `games` changes
-  // mutate label content and per-server moon material, never rebuilding meshes.
+  // Tracks whether the scene has been built — guarantees the build effect
+  // runs exactly once across the lifetime of the component, even though it
+  // re-evaluates whenever `games.length` transitions (notably empty -> N).
+  const builtRef = React.useRef(false);
+
+  // Build the scene the first time `games` becomes non-empty. SWR loads games
+  // after mount, so we re-run the effect when `games.length` changes; the
+  // `builtRef` gate ensures we never rebuild meshes on subsequent changes
+  // (label/moon updates flow through the prop-watch effect below).
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (builtRef.current) return;
+    if (gamesRef.current.length === 0) return;
     const container = wrapperRef.current;
     const canvas = canvasRef.current;
     const labelsHost = labelsRef.current;
     if (!container || !canvas) return;
-    if (gamesRef.current.length === 0) {
-      // Empty system: nothing to render in 3D; bail silently.
-      return;
-    }
+    builtRef.current = true;
 
     const reducedMotion = Boolean(
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
@@ -474,18 +483,30 @@ export function Scene({ games }: SceneProps) {
     const amb = new THREE.AmbientLight(0xffffff, 0.45);
     scene.add(amb);
 
+    // Track every CanvasTexture/Texture created during build so we can
+    // dispose them in cleanup. material.dispose() does NOT free its bound
+    // textures, so without this, GPU memory leaks on every Scene unmount.
+    const createdTextures: THREE.Texture[] = [];
+
     // Starfield
     const stars = makeStarfield();
     scene.add(stars);
+    if (stars.userData.sprite instanceof THREE.Texture) {
+      createdTextures.push(stars.userData.sprite);
+    }
 
     // Sun
     const sunGroup = new THREE.Group();
     const sunGeom = new THREE.SphereGeometry(14, 48, 48);
-    const sunMat = new THREE.MeshBasicMaterial({ map: makeSunTexture() });
+    const sunTex = makeSunTexture();
+    createdTextures.push(sunTex);
+    const sunMat = new THREE.MeshBasicMaterial({ map: sunTex });
     const sun = new THREE.Mesh(sunGeom, sunMat);
     sunGroup.add(sun);
+    const glow1Tex = makeGlowTexture('rgb(255,220,140)');
+    createdTextures.push(glow1Tex);
     const glowMat1 = new THREE.SpriteMaterial({
-      map: makeGlowTexture('rgb(255,220,140)'),
+      map: glow1Tex,
       color: 0xffd46b,
       transparent: true,
       opacity: 0.8,
@@ -495,8 +516,10 @@ export function Scene({ games }: SceneProps) {
     const sunGlow1 = new THREE.Sprite(glowMat1);
     sunGlow1.scale.set(80, 80, 1);
     sunGroup.add(sunGlow1);
+    const glow2Tex = makeGlowTexture('rgb(124,58,237)');
+    createdTextures.push(glow2Tex);
     const glowMat2 = new THREE.SpriteMaterial({
-      map: makeGlowTexture('rgb(124,58,237)'),
+      map: glow2Tex,
       color: 0x7c3aed,
       transparent: true,
       opacity: 0.35,
@@ -521,9 +544,11 @@ export function Scene({ games }: SceneProps) {
       const group = new THREE.Group();
       const pGeom = new THREE.SphereGeometry(pr, 64, 64);
       const baseTex = makePlanetTexture(hue);
+      const emissiveTex = makePlanetTexture(hue);
+      createdTextures.push(baseTex, emissiveTex);
       const pMat = new THREE.MeshStandardMaterial({
         map: baseTex,
-        emissiveMap: makePlanetTexture(hue),
+        emissiveMap: emissiveTex,
         emissive: new THREE.Color(`hsl(${hue}, 60%, 45%)`),
         emissiveIntensity: 0.55,
         roughness: 0.85,
@@ -651,8 +676,13 @@ export function Scene({ games }: SceneProps) {
     }
     const updateLabelContent = () => {
       const fresh = gamesRef.current;
-      labels.forEach((lb, idx) => {
-        const g = fresh[idx];
+      // Look up by id rather than index — API may reorder, insert, or remove
+      // games between SWR polls; positional indexing would drift labels onto
+      // the wrong planet.
+      const byId = new Map<string, SceneGame>();
+      for (const g of fresh) byId.set(g.id, g);
+      labels.forEach((lb) => {
+        const g = byId.get(lb.planet.data.id);
         if (!g) return;
         const totalCrew = g.servers.reduce((s, m) => s + (m.players ?? 0), 0);
         const totalMax = g.servers.reduce((s, m) => s + (m.maxPlayers ?? 0), 0);
@@ -678,10 +708,43 @@ export function Scene({ games }: SceneProps) {
       });
     };
     updateLabelContent();
-    // expose so the prop-watch effect can call it
+
+    // updateMoonMaterials re-reads gamesRef.current and updates each moon's
+    // color/emissive based on the current per-server status. Keeps the 3D
+    // moon coloring in sync with SWR-polled status/ping changes without
+    // rebuilding any geometry/material.
+    const updateMoonMaterials = () => {
+      const fresh = gamesRef.current;
+      const byId = new Map<string, SceneGame>();
+      for (const g of fresh) byId.set(g.id, g);
+      planetMeshes.forEach((pm) => {
+        const g = byId.get(pm.data.id);
+        if (!g) return;
+        pm.moons.forEach((mm, mi) => {
+          const srv = g.servers.find((s) => s.id === mm.serverId);
+          if (!srv) return;
+          const tone = statusOf(srv);
+          const moonHue = tone === 'on' ? 145 : tone === 'warn' ? 40 : 0;
+          const mat = mm.mesh.material as THREE.MeshStandardMaterial;
+          mat.color.set(`hsl(${moonHue + (mi - 1) * 10}, 50%, 55%)`);
+          mat.emissive.set(`hsl(${moonHue}, 60%, 30%)`);
+        });
+      });
+    };
+
+    // expose so the prop-watch effect can call them
     (
-      container as HTMLDivElement & { __updateLabels?: () => void }
+      container as HTMLDivElement & {
+        __updateLabels?: () => void;
+        __updateMoons?: () => void;
+      }
     ).__updateLabels = updateLabelContent;
+    (
+      container as HTMLDivElement & {
+        __updateLabels?: () => void;
+        __updateMoons?: () => void;
+      }
+    ).__updateMoons = updateMoonMaterials;
 
     // Resize
     const onResize = () => {
@@ -844,7 +907,9 @@ export function Scene({ games }: SceneProps) {
       const dx = ev.clientX - downX;
       const dy = ev.clientY - downY;
       if (Math.abs(dx) + Math.abs(dy) > 3) sim.didDrag = true;
-      if (ev.shiftKey || ev.button === 1) {
+      // PointerEvent.button is only meaningful on down/up; during move it's
+      // typically 0. Use the buttons bitmask (4 = middle) instead.
+      if (ev.shiftKey || (ev.buttons & 4) === 4) {
         if (!sim.selectedId) {
           sim.userPan.x = startPan.x - dx * 0.8;
           sim.userPan.z = startPan.z - dy * 0.8;
@@ -1013,20 +1078,31 @@ export function Scene({ games }: SceneProps) {
           else obj.material.dispose();
         }
       });
+      // Dispose every CanvasTexture/Texture allocated during build —
+      // material.dispose() does not free its bound textures.
+      for (const tex of createdTextures) tex.dispose();
       renderer.dispose();
       if (labelsHost) labelsHost.innerHTML = '';
     };
-    // Build only on mount. Subsequent games changes go through the prop-watch
-    // effect below — never rebuild the scene.
+    // Re-evaluates when `games.length` toggles (empty -> N) so SWR-loaded data
+    // can build the scene after mount. `builtRef` guarantees we only construct
+    // once. Subsequent games changes go through the prop-watch effect below —
+    // never rebuild the scene.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [games.length]);
 
-  // Prop-watch effect: whenever games change, refresh the labels content.
+  // Prop-watch effect: whenever games change, refresh label content and moon
+  // material colors. Both flow from gamesRef.current so SWR-polled status
+  // changes reach the DOM and the 3D moons without rebuilding the scene.
   React.useEffect(() => {
     const container = wrapperRef.current as
-      | (HTMLDivElement & { __updateLabels?: () => void })
+      | (HTMLDivElement & {
+          __updateLabels?: () => void;
+          __updateMoons?: () => void;
+        })
       | null;
     container?.__updateLabels?.();
+    container?.__updateMoons?.();
   }, [games]);
 
   return (
