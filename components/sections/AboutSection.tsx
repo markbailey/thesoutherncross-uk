@@ -1,10 +1,17 @@
 import * as React from 'react';
-import { HairlineDivider } from '../hud/HairlineDivider';
 import { GUILD } from '../../config/guild';
 
-// Ported from docs/design/user/site.html lines 8570-8758.
+const principles: ReadonlyArray<{ k: string; v: string }> = [
+  { k: '01', v: 'NO GRIEFING' },
+  { k: '02', v: 'NO STEALING' },
+  { k: '03', v: 'PLAY FRIENDLY' },
+  { k: '04', v: 'LISTEN TO ADMINS' },
+];
+
 export function AboutSection() {
-  const paragraphs = GUILD.about.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+  // Calendar-year approximation — founding month/day unknown, so this can be off
+  // by up to one year. The "over N years" copy absorbs that imprecision.
+  const yearsSince = Math.max(0, new Date().getFullYear() - GUILD.established);
   const statItems: Array<[keyof typeof GUILD.stats, string]> = [
     ['est', 'EST'],
     ['crew', 'CREW'],
@@ -63,70 +70,111 @@ export function AboutSection() {
         {/* Left — Mission Brief */}
         <div className="hud-panel scanlines" style={{ position: 'relative' }}>
           <div style={{ position: 'relative', padding: 32 }}>
-            <span className="eyebrow p">// MISSION BRIEF</span>
+            <div className="crumb" style={{ fontSize: 10 }}>
+              <span>INTEL</span>
+              <span className="sep">/</span>
+              <b>MISSION BRIEF</b>
+            </div>
+            <hr className="hr-hair" style={{ margin: '16px 0' }} />
+
+            <div className="eyebrow p" style={{ marginBottom: 10 }}>
+              // WHO WE ARE
+            </div>
+            {/* Hero copy mirrors docs/design.html — kept inline because the
+                "like-minded" highlight is structural, not a plain string. */}
             <h2
               className="display"
               style={{
-                margin: '14px 0 0',
-                fontSize: 'clamp(32px, 3.6vw, 48px)',
+                margin: 0,
+                fontSize: 'clamp(32px, 3.6vw, 44px)',
                 lineHeight: 1.05,
                 letterSpacing: '0.04em',
                 textShadow: '0 0 24px rgba(124,58,237,0.25)',
               }}
             >
-              {GUILD.name.toUpperCase()}
-            </h2>
-
-            {paragraphs.map((p, i) => (
-              <p
-                key={i}
+              A friendly group of
+              <br />
+              <span
                 style={{
-                  marginTop: i === 0 ? 20 : 14,
-                  color: i === 0 ? 'var(--ink)' : 'var(--ink-dim)',
-                  fontSize: 14,
-                  lineHeight: 1.75,
-                  maxWidth: 620,
-                  fontFamily: 'var(--mono)',
-                  letterSpacing: '0.02em',
+                  color: 'var(--royal-green-neon)',
+                  textShadow: '0 0 12px rgba(57,255,136,0.5)',
                 }}
               >
-                {p}
-              </p>
-            ))}
+                like-minded
+              </span>{' '}
+              gamers
+              <br />
+              running the servers
+              <br />
+              we want to play on.
+            </h2>
+
+            <p
+              style={{
+                marginTop: 20,
+                color: 'var(--ink)',
+                fontSize: 14,
+                lineHeight: 1.75,
+                maxWidth: 560,
+                fontFamily: 'var(--mono)',
+                letterSpacing: '0.02em',
+              }}
+            >
+              We are a friendly group of like-minded gamers. We play many
+              multiplayer, as well as a bunch of single player games, while we
+              chat to each other. Our group has been around for over {yearsSince} years.
+            </p>
+            <p
+              style={{
+                marginTop: 14,
+                color: 'var(--ink-dim)',
+                fontSize: 14,
+                lineHeight: 1.75,
+                maxWidth: 560,
+                fontFamily: 'var(--mono)',
+                letterSpacing: '0.02em',
+              }}
+            >
+              We host a variety of games on our server, all we ask is you follow
+              our rules (no griefing, no stealing, play friendly, and listen to
+              the admins).
+            </p>
+            <p
+              style={{
+                marginTop: 14,
+                color: 'var(--royal-green-neon)',
+                fontSize: 14,
+                lineHeight: 1.75,
+                fontFamily: 'var(--mono)',
+                letterSpacing: '0.08em',
+                fontStyle: 'italic',
+                textShadow: '0 0 8px rgba(57,255,136,0.35)',
+              }}
+            >
+              — Hope to see you in our games. —
+            </p>
 
             <div style={{ marginTop: 28 }}>
               <div className="eyebrow g" style={{ marginBottom: 10 }}>
                 HOUSE RULES
               </div>
-              <ul
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  flexWrap: 'wrap',
-                  listStyle: 'none',
-                  margin: 0,
-                  padding: 0,
-                }}
-              >
-                {GUILD.houseRules.map((rule, i) => (
-                  <li
-                    key={i}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {principles.map((p) => (
+                  <div
+                    key={p.k}
                     style={{
                       border: '1px solid var(--hair)',
                       borderLeft: '2px solid var(--royal-green-neon)',
                       padding: '8px 12px',
                       display: 'flex',
-                      alignItems: 'baseline',
-                      gap: 12,
+                      alignItems: 'center',
+                      gap: 10,
                       fontFamily: 'var(--mono)',
                       fontSize: 11,
-                      letterSpacing: '0.04em',
-                      lineHeight: 1.5,
-                      color: 'var(--ink-dim)',
+                      letterSpacing: '0.14em',
                       clipPath:
                         'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)',
-                      background: 'rgba(57,255,136,0.03)',
+                      background: 'rgba(57,255,136,0.04)',
                     }}
                   >
                     <span
@@ -134,20 +182,19 @@ export function AboutSection() {
                       style={{
                         color: 'var(--royal-green-neon)',
                         fontSize: 10,
-                        flexShrink: 0,
                       }}
                     >
-                      {String(i + 1).padStart(2, '0')}
+                      {p.k}
                     </span>
-                    <span style={{ color: 'var(--ink)' }}>{rule}</span>
-                  </li>
+                    <span style={{ color: 'var(--ink)' }}>{p.v}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right — Stats Dossier */}
+        {/* Right — Vitals (no scanlines per design — only Mission Brief panel has them) */}
         <div className="hud-panel" style={{ position: 'relative' }}>
           <div
             style={{
@@ -158,14 +205,22 @@ export function AboutSection() {
               flexDirection: 'column',
             }}
           >
-            <span className="eyebrow g">OPERATIONAL VITALS</span>
+            <div className="crumb" style={{ fontSize: 10 }}>
+              <span>INTEL</span>
+              <span className="sep">/</span>
+              <b>VITALS</b>
+            </div>
+            <hr className="hr-hair" style={{ margin: '16px 0' }} />
+
+            <div className="eyebrow g" style={{ marginBottom: 16 }}>
+              OPERATIONAL READOUT
+            </div>
 
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: 14,
-                marginTop: 20,
               }}
             >
               {statItems.map(([key, label]) => (
@@ -179,9 +234,19 @@ export function AboutSection() {
                   }}
                 >
                   <div
+                    className="eyebrow"
+                    style={{
+                      fontSize: 9,
+                      color: 'var(--ink-faint)',
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div
                     className="num display"
                     style={{
-                      fontSize: 26,
+                      marginTop: 4,
+                      fontSize: 30,
                       color: 'var(--ink)',
                       letterSpacing: '0.04em',
                       lineHeight: 1,
@@ -189,25 +254,15 @@ export function AboutSection() {
                   >
                     {GUILD.stats[key]}
                   </div>
-                  <div
-                    className="eyebrow"
-                    style={{
-                      fontSize: 9,
-                      color: 'var(--ink-faint)',
-                      marginTop: 6,
-                    }}
-                  >
-                    {label}
-                  </div>
                 </div>
               ))}
             </div>
 
-            <HairlineDivider style={{ margin: '24px 0 20px' }} />
+            <hr className="hr-hair" style={{ margin: '24px 0 20px' }} />
 
-            <span className="eyebrow p" style={{ marginBottom: 12 }}>
+            <div className="eyebrow p" style={{ marginBottom: 12 }}>
               // COMMS PROTOCOL
-            </span>
+            </div>
             <div
               style={{
                 display: 'grid',
@@ -215,7 +270,6 @@ export function AboutSection() {
                 fontFamily: 'var(--mono)',
                 fontSize: 11,
                 letterSpacing: '0.08em',
-                marginTop: 12,
               }}
             >
               {commsRows.map(([k, v]) => (
@@ -223,17 +277,13 @@ export function AboutSection() {
                   key={k}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '72px 1fr',
+                    gridTemplateColumns: '62px 1fr',
                     gap: 10,
                     alignItems: 'baseline',
+                    color: 'var(--ink-dim)',
                   }}
                 >
-                  <span
-                    className="eyebrow g"
-                    style={{ fontSize: 10 }}
-                  >
-                    {k}
-                  </span>
+                  <span style={{ color: 'var(--royal-green-neon)' }}>{k}</span>
                   <span style={{ color: 'var(--ink)' }}>{v}</span>
                 </div>
               ))}
@@ -248,8 +298,6 @@ export function AboutSection() {
                 color: 'var(--ink-faint)',
                 fontSize: 9,
                 letterSpacing: '0.2em',
-                fontFamily: 'var(--mono)',
-                textTransform: 'uppercase',
               }}
             >
               <span>CLEARANCE · OPEN</span>

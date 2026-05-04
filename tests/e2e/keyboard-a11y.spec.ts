@@ -14,7 +14,7 @@ test.describe('keyboard accessibility', () => {
 
     // First tab should land on the nav brand anchor (or a focusable skip target).
     // Walk forward and confirm we eventually reach each nav link.
-    const labels = ['HERO', 'ABOUT', 'SYSTEM', 'MEMBERS', 'JOIN'];
+    const labels = ['HOME', 'ABOUT', 'SYSTEM', 'MEMBERS', 'JOIN'];
     for (let i = 0; i < 20 && labels.length > 0; i++) {
       await page.keyboard.press('Tab');
       const focusedText = (await page.evaluate(() => document.activeElement?.textContent ?? '')).trim();

@@ -2,18 +2,44 @@
 
 import * as React from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 
 export interface OrbitProps {
   radius: number;
   /** 0–1 multiplier on stroke opacity — drops while a planet is focused. */
   attenuate?: number;
+  /** Pulse period in seconds. Stagger different rings (8, 10, 12) for subtle parallax. */
+  period?: number;
 }
 
 /**
  * Thin translucent ring on the y=0 plane drawn from a tube geometry to keep
  * stroke width consistent regardless of camera distance.
+ *
+ * Stroke opacity pulses on a sine wave (0.18 → 0.50) and is multiplied by the
+ * focus `attenuate` so dimming-while-focused still composes correctly.
  */
-export function Orbit({ radius, attenuate = 1 }: OrbitProps) {
+export function Orbit({ radius, attenuate = 1, period = 10 }: OrbitProps) {
+  const matRef = React.useRef<THREE.LineBasicMaterial>(null);
+  // Initialise synchronously so the very first useFrame tick honours
+  // prefers-reduced-motion instead of running a pulse for one frame.
+  const reducedRef = React.useRef<boolean>(
+    typeof window !== 'undefined' &&
+      Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  );
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mq) return;
+    reducedRef.current = mq.matches;
+    const onChange = (e: MediaQueryListEvent) => {
+      reducedRef.current = e.matches;
+    };
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+
   const points = React.useMemo(() => {
     const segments = 96;
     const arr: THREE.Vector3[] = [];
@@ -26,10 +52,23 @@ export function Orbit({ radius, attenuate = 1 }: OrbitProps) {
 
   const geom = React.useMemo(() => new THREE.BufferGeometry().setFromPoints(points), [points]);
 
+  useFrame((state) => {
+    const m = matRef.current;
+    if (!m) return;
+    if (reducedRef.current) {
+      m.opacity = 0.45 * attenuate;
+      return;
+    }
+    const t = state.clock.getElapsedTime();
+    const pulse = 0.34 + Math.sin(t * ((2 * Math.PI) / period)) * 0.16;
+    m.opacity = pulse * attenuate;
+  });
+
   return (
     <line>
       <primitive object={geom} attach="geometry" />
       <lineBasicMaterial
+        ref={matRef}
         color="#7c3aed"
         transparent
         opacity={0.45 * attenuate}

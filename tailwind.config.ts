@@ -39,6 +39,7 @@ const config: Config = {
           'monospace',
         ],
         display: ['Orbitron', 'Rajdhani', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        rajdhani: ['var(--font-rajdhani)', 'Rajdhani', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       letterSpacing: {
         hud: '0.14em',

@@ -236,6 +236,7 @@ function ScrollCue() {
     <button
       type="button"
       onClick={onClick}
+      className="hero-scroll-cue"
       style={{
         background: 'transparent',
         border: '1px solid var(--hair)',
