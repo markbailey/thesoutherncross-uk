@@ -41,6 +41,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
   const online = (member.state ?? 0) > 0;
   const profileUrl = `https://steamcommunity.com/profiles/${member.steamid}`;
   const closeBtnRef = React.useRef<HTMLButtonElement>(null);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
 
   // Hold latest onClose in a ref so the mount effect stays `[]` and we don't
   // tear down the keydown listener / re-lock body scroll / re-steal focus
@@ -51,9 +52,35 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
   });
 
   React.useEffect(() => {
+    // Capture the element that had focus before mount so we can restore it on close.
+    const previouslyFocused = document.activeElement;
     closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const root = dialogRef.current;
+      if (!root) return;
+      const focusables = root.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !root.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last || !root.contains(active)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
@@ -61,6 +88,13 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
     return () => {
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      // Restore focus to whatever owned it before the modal opened.
+      if (
+        previouslyFocused instanceof HTMLElement &&
+        document.contains(previouslyFocused)
+      ) {
+        previouslyFocused.focus();
+      }
     };
   }, []);
 
@@ -72,6 +106,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="member-modal-name"

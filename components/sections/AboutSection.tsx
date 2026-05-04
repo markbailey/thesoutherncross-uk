@@ -9,6 +9,8 @@ const principles: ReadonlyArray<{ k: string; v: string }> = [
 ];
 
 export function AboutSection() {
+  // Years since founding, rounded down — keeps copy honest without code edits each year.
+  const yearsSince = Math.max(0, new Date().getFullYear() - GUILD.established);
   const statItems: Array<[keyof typeof GUILD.stats, string]> = [
     ['est', 'EST'],
     ['crew', 'CREW'],
@@ -119,7 +121,7 @@ export function AboutSection() {
             >
               We are a friendly group of like-minded gamers. We play many
               multiplayer, as well as a bunch of single player games, while we
-              chat to each other. Our group has been around for over 10 years.
+              chat to each other. Our group has been around for over {yearsSince} years.
             </p>
             <p
               style={{

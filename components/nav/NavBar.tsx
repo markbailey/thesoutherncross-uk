@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { CruxMark } from '../layout/CruxMark';
+import { GUILD } from '../../config/guild';
 import { VERSION } from '../../config/site';
 import { useActiveSection } from './useActiveSection';
 import { useHashSection } from './useHashSection';
@@ -19,6 +20,10 @@ const LINKS: Array<{ id: (typeof SECTION_IDS)[number]; label: string }> = [
 export function NavBar() {
   useHashSection();
   const active = useActiveSection(SECTION_IDS);
+  // Split GUILD.shortName so the trailing token(s) get the green ·-prefixed treatment
+  // from the design. e.g. "TSX UK" → "TSX" + "·UK".
+  const [brandLead, ...brandRest] = GUILD.shortName.split(' ');
+  const brandTail = brandRest.join(' ');
 
   const handleClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -78,7 +83,10 @@ export function NavBar() {
           className="display"
           style={{ fontSize: 12, letterSpacing: '0.22em' }}
         >
-          TSX <span style={{ color: 'var(--royal-green-neon)' }}>·UK</span>
+          {brandLead}{brandTail ? ' ' : ''}
+          {brandTail ? (
+            <span style={{ color: 'var(--royal-green-neon)' }}>·{brandTail}</span>
+          ) : null}
         </span>
         <span
           className="eyebrow"

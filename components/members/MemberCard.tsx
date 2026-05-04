@@ -131,6 +131,7 @@ export function MemberCard({ member, highlighted, onActivate }: MemberCardProps)
         e.preventDefault();
         onActivate();
       }}
+      aria-haspopup={onActivate ? 'dialog' : undefined}
       className={`hud-panel scanlines member-card${roleClass}`}
       data-steamid={member.steamid}
       data-highlight={highlighted ? 'true' : undefined}
