@@ -24,6 +24,12 @@ export interface CameraState {
   setUserZoom: (z: number) => void;
 }
 
+export const SYSTEM_CAMERA_BASE_RADIUS = 620;
+export const SYSTEM_CAMERA_RADIUS_MIN = 18;
+export const SYSTEM_CAMERA_RADIUS_MAX = 1400;
+export const SYSTEM_USER_ZOOM_MIN = SYSTEM_CAMERA_RADIUS_MIN / SYSTEM_CAMERA_BASE_RADIUS;
+export const SYSTEM_USER_ZOOM_MAX = SYSTEM_CAMERA_RADIUS_MAX / SYSTEM_CAMERA_BASE_RADIUS;
+
 export const useCameraState = create<CameraState>((set) => ({
   view: 'system',
   focusedGameId: null,
@@ -88,5 +94,5 @@ export const useCameraState = create<CameraState>((set) => ({
 
   toggleListMode: () => set((s) => ({ listMode: !s.listMode })),
   setListMode: (on) => set({ listMode: on }),
-  setUserZoom: (z) => set({ userZoom: Math.max(0.029, Math.min(2.26, z)) }),
+  setUserZoom: (z) => set({ userZoom: Math.max(SYSTEM_USER_ZOOM_MIN, Math.min(SYSTEM_USER_ZOOM_MAX, z)) }),
 }));

@@ -41,13 +41,13 @@ function shortPing(ping: number | null): string {
 }
 
 /**
- * Right-side floating HUD panel. Slides in when a planet/server is focused,
- * shows the system overview otherwise. Preserves the existing test contract:
+ * Right-side floating HUD panel. Mounted only while a planet (and optionally a
+ * server) is focused — `SystemSection` gates render on `focusedGameId`.
+ * Test contract preserved by the focused render path:
  *   - .crumb shows planet/server names uppercased
- *   - "ZOOM OUT" button when not on system view
+ *   - "ZOOM OUT" button steps focus out one level
  *   - "LIST" / "SCENE" toggle button
- *   - planet buttons named after each game
- *   - server buttons named after each instance
+ *   - server buttons named after each instance of the focused game
  */
 export function HudOverlay({ games, loading = false, error = false }: HudOverlayProps) {
   const view = useCameraState((s) => s.view);

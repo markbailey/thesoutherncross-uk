@@ -2,7 +2,12 @@
 
 import * as React from 'react';
 import * as THREE from 'three';
-import { useCameraState } from './useCameraState';
+import {
+  useCameraState,
+  SYSTEM_CAMERA_BASE_RADIUS,
+  SYSTEM_CAMERA_RADIUS_MIN,
+  SYSTEM_CAMERA_RADIUS_MAX,
+} from './useCameraState';
 import { useSceneVisibility } from './useSceneVisibility';
 
 export interface SceneGameServer {
@@ -570,12 +575,11 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
 
       const group = new THREE.Group();
       const pGeom = new THREE.SphereGeometry(pr, 64, 64);
-      const baseTex = makePlanetTexture(hue);
-      const emissiveTex = makePlanetTexture(hue);
-      createdTextures.push(baseTex, emissiveTex);
+      const tex = makePlanetTexture(hue);
+      createdTextures.push(tex);
       const pMat = new THREE.MeshStandardMaterial({
-        map: baseTex,
-        emissiveMap: emissiveTex,
+        map: tex,
+        emissiveMap: tex,
         emissive: new THREE.Color(`hsl(${hue}, 60%, 45%)`),
         emissiveIntensity: 0.55,
         roughness: 0.85,
@@ -642,7 +646,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
 
     // Camera tween + sim state
     const cam = makeTween(
-      { radius: 620, yaw: 0, pitch: 0.45, tx: 0, ty: 0, tz: 0, fov: 48 },
+      { radius: SYSTEM_CAMERA_BASE_RADIUS, yaw: 0, pitch: 0.45, tx: 0, ty: 0, tz: 0, fov: 48 },
       freeze ? 1 : 0.08,
     );
     const sim: SimState = {
@@ -835,7 +839,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
         // Preserve yaw/pitch/pan on zoom-only changes; only reset when selection just cleared.
         if (prevSelectedId !== null) {
           cam.setTarget({
-            radius: 620 * state.userZoom,
+            radius: SYSTEM_CAMERA_BASE_RADIUS * state.userZoom,
             yaw: 0,
             pitch: 0.45,
             tx: sim.userPan.x,
@@ -844,7 +848,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
             fov: 48,
           });
         } else {
-          cam.setTarget({ ...cam.target, radius: 620 * state.userZoom, fov: 48 });
+          cam.setTarget({ ...cam.target, radius: SYSTEM_CAMERA_BASE_RADIUS * state.userZoom, fov: 48 });
         }
       }
       prevSelectedId = sim.selectedId;
@@ -917,9 +921,9 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
       ev.preventDefault();
       const delta = ev.deltaY;
       const factor = Math.exp(delta * 0.001);
-      const newR = Math.max(18, Math.min(1400, cam.target.radius * factor));
+      const newR = Math.max(SYSTEM_CAMERA_RADIUS_MIN, Math.min(SYSTEM_CAMERA_RADIUS_MAX, cam.target.radius * factor));
       cam.setTarget({ ...cam.target, radius: newR });
-      if (!sim.selectedId) useCameraState.getState().setUserZoom(newR / 620);
+      if (!sim.selectedId) useCameraState.getState().setUserZoom(newR / SYSTEM_CAMERA_BASE_RADIUS);
     };
 
     let downX = 0,

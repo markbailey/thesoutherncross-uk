@@ -6,7 +6,11 @@ import useSWR from 'swr';
 import { HudPanel, HudButton, HudCorner, HairlineDivider } from '../hud';
 import { GAMES } from '../../config/servers';
 import { GUILD } from '../../config/guild';
-import { useCameraState } from '../solar-system/useCameraState';
+import {
+  useCameraState,
+  SYSTEM_USER_ZOOM_MIN,
+  SYSTEM_USER_ZOOM_MAX,
+} from '../solar-system/useCameraState';
 import { isWebGLAvailable } from '../solar-system/webgl';
 import { HudOverlay, type OverlayGame, type OverlayServer } from '../solar-system/HudOverlay';
 import { ListMode } from '../solar-system/ListMode';
@@ -504,8 +508,8 @@ function FullBleedLayout({
           <input
             className="s3-zoom"
             type="range"
-            min="0.029"
-            max="2.26"
+            min={SYSTEM_USER_ZOOM_MIN}
+            max={SYSTEM_USER_ZOOM_MAX}
             step="0.01"
             value={userZoom}
             onChange={(e) => setUserZoom(parseFloat(e.target.value))}
