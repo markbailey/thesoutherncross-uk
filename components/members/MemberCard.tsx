@@ -122,8 +122,8 @@ export function MemberCard({ member, highlighted, onActivate }: MemberCardProps)
   return (
     <a
       href={profileUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+      target={onActivate ? undefined : '_blank'}
+      rel={onActivate ? undefined : 'noopener noreferrer'}
       onClick={(e) => {
         if (!onActivate) return;
         // Let modifier-clicks / middle-clicks open the Steam profile in a new tab.

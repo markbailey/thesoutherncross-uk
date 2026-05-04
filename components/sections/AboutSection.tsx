@@ -9,7 +9,8 @@ const principles: ReadonlyArray<{ k: string; v: string }> = [
 ];
 
 export function AboutSection() {
-  // Years since founding, rounded down — keeps copy honest without code edits each year.
+  // Calendar-year approximation — founding month/day unknown, so this can be off
+  // by up to one year. The "over N years" copy absorbs that imprecision.
   const yearsSince = Math.max(0, new Date().getFullYear() - GUILD.established);
   const statItems: Array<[keyof typeof GUILD.stats, string]> = [
     ['est', 'EST'],
