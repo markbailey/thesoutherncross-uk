@@ -112,19 +112,40 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         }}
       >
         <Link
+          href="/admin/games"
+          style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 11,
+            letterSpacing: '0.20em',
+            textTransform: 'uppercase',
+            color: 'var(--ink-dim)',
+            textDecoration: 'none',
+            padding: '12px 16px',
+            borderBottom: '2px solid transparent',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            transition: 'color .12s',
+          }}
+        >
+          <span style={{ fontSize: 9, opacity: 0.7 }}>▸</span>
+          GAMES
+        </Link>
+        <Link
           href="/admin/servers"
           style={{
             fontFamily: 'var(--mono)',
             fontSize: 11,
             letterSpacing: '0.20em',
             textTransform: 'uppercase',
-            color: 'var(--royal-green-neon)',
+            color: 'var(--ink-dim)',
             textDecoration: 'none',
             padding: '12px 16px',
-            borderBottom: '2px solid var(--royal-green-neon)',
+            borderBottom: '2px solid transparent',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
+            transition: 'color .12s',
           }}
         >
           <span style={{ fontSize: 9, opacity: 0.7 }}>▸</span>
