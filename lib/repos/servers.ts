@@ -79,8 +79,8 @@ export function createServer(input: {
   const id = generateId(input.name);
   const now = Date.now();
   db.prepare(
-    `INSERT INTO servers (id, name, host, port, protocol, game_id, hidden, created_at, updated_at)
-     VALUES (?, ?, ?, ?, '', ?, 0, ?, ?)`
+    `INSERT INTO servers (id, name, host, port, game_id, hidden, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 0, ?, ?)`
   ).run(id, input.name, input.host, input.port, input.game_id, now, now);
   return id;
 }
@@ -90,7 +90,8 @@ export function updateServer(
   patch: Partial<Pick<ServerRow, 'name' | 'host' | 'port' | 'game_id'>>,
 ): void {
   const db = getDb();
-  const fields = Object.keys(patch) as (keyof typeof patch)[];
+  const ALLOWED = new Set(['name', 'host', 'port', 'game_id']);
+  const fields = (Object.keys(patch) as (keyof typeof patch)[]).filter((f) => ALLOWED.has(f));
   if (fields.length === 0) return;
 
   const setClauses = fields.map((f) => `${f} = ?`).join(', ');
