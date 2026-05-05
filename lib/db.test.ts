@@ -22,11 +22,11 @@ describe('db', () => {
     const db = getDb({ dbPath: ':memory:' });
     const rows = db
       .prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name IN ('server_status','status_history','members','meta','servers')`,
+        `SELECT name FROM sqlite_master WHERE type='table' AND name IN ('games','server_status','status_history','members','meta','servers')`,
       )
       .all() as Array<{ name: string }>;
     const names = rows.map((r) => r.name).sort();
-    expect(names).toEqual(['members', 'meta', 'server_status', 'servers', 'status_history']);
+    expect(names).toEqual(['games', 'members', 'meta', 'server_status', 'servers', 'status_history']);
   });
 
   it('lastPollAt returns null before any write and the stored value after', () => {
