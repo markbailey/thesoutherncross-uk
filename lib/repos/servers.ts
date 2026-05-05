@@ -115,10 +115,12 @@ export function setHidden(id: string, hidden: boolean): void {
 }
 
 export function deleteServer(id: string): void {
-  const db = getDb();
-  db.prepare(`DELETE FROM status_history WHERE server_id = ?`).run(id);
-  db.prepare(`DELETE FROM server_status WHERE id = ?`).run(id);
-  db.prepare(`DELETE FROM servers WHERE id = ?`).run(id);
+  withTransaction(() => {
+    const db = getDb();
+    db.prepare(`DELETE FROM status_history WHERE server_id = ?`).run(id);
+    db.prepare(`DELETE FROM server_status WHERE id = ?`).run(id);
+    db.prepare(`DELETE FROM servers WHERE id = ?`).run(id);
+  });
 }
 
 export type StatusRow = {

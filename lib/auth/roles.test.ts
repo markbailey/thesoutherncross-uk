@@ -37,4 +37,13 @@ describe('isMember', () => {
     ).run('12345', 'Test', '', 0, Date.now());
     expect(isMember('12345')).toBe(true);
   });
+
+  it('returns false when members.stale meta flag is set', () => {
+    const db = getDb();
+    db.prepare(
+      'INSERT INTO members (steamid, persona, avatar, state, updated_at) VALUES (?,?,?,?,?)',
+    ).run('12345', 'Test', '', 0, Date.now());
+    db.prepare("INSERT INTO meta (key, value) VALUES ('members.stale', '1')").run();
+    expect(isMember('12345')).toBe(false);
+  });
 });
