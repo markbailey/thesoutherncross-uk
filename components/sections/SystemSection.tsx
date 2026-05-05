@@ -4,7 +4,6 @@ import * as React from 'react';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { HudPanel, HudButton, HudCorner, HairlineDivider } from '../hud';
-import { GAMES } from '../../config/servers';
 import { GUILD } from '../../config/guild';
 import {
   useCameraState,
@@ -23,6 +22,8 @@ const Scene = dynamic(() => import('../solar-system/Scene').then((m) => m.Scene)
 interface ApiServer {
   id: string;
   name: string;
+  host: string;
+  port: number;
   online: boolean;
   players: number | null;
   maxPlayers: number | null;
@@ -36,10 +37,8 @@ interface ApiGame {
   planet: { color: string; size: number; orbitRadius: number; orbitSpeed: number };
   servers: ApiServer[];
 }
-// API response: demo mode returns { games }, live DB returns { servers }.
 interface ApiResponse {
   games?: ApiGame[];
-  servers?: ApiServer[];
   updatedAt: number | null;
 }
 
@@ -48,18 +47,6 @@ const fetcher = async (url: string): Promise<ApiResponse> => {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as ApiResponse;
 };
-
-/** Connect strings come from the static GAMES manifest (hosts are not exposed via API). */
-// Server ids are globally unique across all games — see config/servers.ts. Map is flat by design.
-const CONNECT_STRINGS: Record<string, string> = (() => {
-  const out: Record<string, string> = {};
-  for (const g of GAMES) {
-    for (const s of g.servers) {
-      out[s.id] = `${s.host}:${s.port}`;
-    }
-  }
-  return out;
-})();
 
 // Shallow structural compare for SWR. Compares every rendered field
 // (game/server names, planet visuals, server status/players/map/ping) and
@@ -70,30 +57,7 @@ function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined)
   if (a === b) return true;
   if (!a || !b) return false;
 
-  // Compare flat servers list (live DB mode)
-  if (a.servers !== undefined || b.servers !== undefined) {
-    const sa = a.servers ?? [];
-    const sb = b.servers ?? [];
-    if (sa.length !== sb.length) return false;
-    for (let i = 0; i < sa.length; i++) {
-      const x = sa[i];
-      const y = sb[i];
-      if (!x || !y) return false;
-      if (
-        x.id !== y.id ||
-        x.name !== y.name ||
-        x.online !== y.online ||
-        x.players !== y.players ||
-        x.maxPlayers !== y.maxPlayers ||
-        x.map !== y.map ||
-        x.ping !== y.ping
-      )
-        return false;
-    }
-    return true;
-  }
-
-  // Compare games list (demo mode)
+  // Compare games list
   const ga = a.games ?? [];
   const gb = b.games ?? [];
   if (ga.length !== gb.length) return false;
@@ -139,46 +103,25 @@ export function SystemSection() {
     compare: sameApiSnapshot,
   });
 
-  // Demo mode returns { games }, live DB returns { servers }. Normalise to OverlayGame[].
   const games: OverlayGame[] = React.useMemo(() => {
-    if (data?.games) {
-      return data.games.map((g) => ({
-        id: g.id,
-        name: g.name,
-        servers: g.servers.map<OverlayServer>((s) => ({
-          id: s.id,
-          name: s.name,
-          online: s.online,
-          players: s.players,
-          maxPlayers: s.maxPlayers,
-          map: s.map,
-          ping: s.ping,
-          updatedAt: s.updatedAt,
-        })),
-        connectStrings: CONNECT_STRINGS,
-      }));
-    }
-    if (data?.servers) {
-      // Flat server list from DB — no game grouping or planet visuals.
-      return [
-        {
-          id: 'servers',
-          name: 'Servers',
-          servers: data.servers.map<OverlayServer>((s) => ({
-            id: s.id,
-            name: s.name,
-            online: s.online,
-            players: s.players,
-            maxPlayers: s.maxPlayers,
-            map: s.map,
-            ping: s.ping,
-            updatedAt: s.updatedAt,
-          })),
-          connectStrings: CONNECT_STRINGS,
-        },
-      ];
-    }
-    return [];
+    if (!data?.games) return [];
+    return data.games.map((g) => ({
+      id: g.id,
+      name: g.name,
+      servers: g.servers.map<OverlayServer>((s) => ({
+        id: s.id,
+        name: s.name,
+        online: s.online,
+        players: s.players,
+        maxPlayers: s.maxPlayers,
+        map: s.map,
+        ping: s.ping,
+        updatedAt: s.updatedAt,
+      })),
+      connectStrings: Object.fromEntries(
+        g.servers.map((s) => [s.id, `${s.host}:${s.port}`])
+      ),
+    }));
   }, [data]);
 
   const sceneGames = React.useMemo(
@@ -288,7 +231,7 @@ export function SystemSection() {
     return () => reset();
   }, [reset]);
 
-  const isEmpty = !isLoading && games.length === 0 && !error;
+  const isEmpty = !isLoading && (!data?.games || data.games.length === 0) && !error;
 
   return (
     <section
