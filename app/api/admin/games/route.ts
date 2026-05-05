@@ -16,10 +16,8 @@ async function requireAdmin(): Promise<SessionData | null> {
 }
 
 export async function GET(): Promise<NextResponse> {
-  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  if (!session.steamid || !isAdmin(session.steamid)) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const games = listAllGames();
   return NextResponse.json({ games: games.map((g) => ({ id: g.id, name: g.name })) });
 }
