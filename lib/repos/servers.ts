@@ -1,15 +1,20 @@
-import { getDb } from '../db.js';
-import type { Protocol, ServerConfig } from '../types/servers.js';
+import { getDb } from '../db';
+import type { Protocol } from '../types/servers.js';
 
 export type ServerRow = {
   id: string;
   name: string;
   host: string;
   port: number;
-  protocol: Protocol;
+  game_id: string | null;
   hidden: number;
   created_at: number;
   updated_at: number;
+};
+
+export type ServerRowWithGame = ServerRow & {
+  protocol: Protocol | null;
+  game_name: string | null;
 };
 
 function slugify(name: string): string {
@@ -27,25 +32,36 @@ function generateId(name: string): string {
     .all(base, `${base}-%`) as { id: string }[];
 
   if (existing.length === 0) return base;
-
   const ids = new Set(existing.map((r) => r.id));
   if (!ids.has(base)) return base;
-
   let n = 2;
   while (ids.has(`${base}-${n}`)) n++;
   return `${base}-${n}`;
 }
 
-export function listAll(): ServerRow[] {
-  const db = getDb();
-  return db.prepare(`SELECT * FROM servers ORDER BY created_at ASC`).all() as ServerRow[];
-}
-
-export function listEnabled(): ServerRow[] {
+export function listAll(): ServerRowWithGame[] {
   const db = getDb();
   return db
-    .prepare(`SELECT * FROM servers WHERE hidden = 0 ORDER BY created_at ASC`)
-    .all() as ServerRow[];
+    .prepare(
+      `SELECT s.*, g.protocol, g.name AS game_name
+       FROM servers s
+       LEFT JOIN games g ON s.game_id = g.id
+       ORDER BY s.created_at ASC`
+    )
+    .all() as ServerRowWithGame[];
+}
+
+export function listEnabled(): ServerRowWithGame[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT s.*, g.protocol, g.name AS game_name
+       FROM servers s
+       JOIN games g ON s.game_id = g.id
+       WHERE s.hidden = 0
+       ORDER BY s.created_at ASC`
+    )
+    .all() as ServerRowWithGame[];
 }
 
 export function getById(id: string): ServerRow | undefined {
@@ -57,21 +73,21 @@ export function createServer(input: {
   name: string;
   host: string;
   port: number;
-  protocol: Protocol;
+  game_id: string;
 }): string {
   const db = getDb();
   const id = generateId(input.name);
   const now = Date.now();
   db.prepare(
-    `INSERT INTO servers (id, name, host, port, protocol, hidden, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
-  ).run(id, input.name, input.host, input.port, input.protocol, now, now);
+    `INSERT INTO servers (id, name, host, port, protocol, game_id, hidden, created_at, updated_at)
+     VALUES (?, ?, ?, ?, '', ?, 0, ?, ?)`
+  ).run(id, input.name, input.host, input.port, input.game_id, now, now);
   return id;
 }
 
 export function updateServer(
   id: string,
-  patch: Partial<Pick<ServerConfig, 'name' | 'host' | 'port' | 'protocol'>>,
+  patch: Partial<Pick<ServerRow, 'name' | 'host' | 'port' | 'game_id'>>,
 ): void {
   const db = getDb();
   const fields = Object.keys(patch) as (keyof typeof patch)[];
