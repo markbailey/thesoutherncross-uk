@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const returnTo = searchParams.get('returnTo') ?? '/';
   const siteBase = process.env['SITE_BASE_URL'] ?? 'http://localhost:3000';
-  const cbBase = `${siteBase}/api/auth/steam/callback`;
+  const cbBase = `${siteBase}/api/auth/steam/callback?returnTo=${encodeURIComponent(returnTo)}`;
 
   try {
     const steamid = await verifyAssertion(request.url, cbBase);

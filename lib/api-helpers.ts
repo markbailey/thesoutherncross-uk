@@ -18,17 +18,17 @@ export function jsonNoStore<T>(data: T, init?: ResponseInit): NextResponse {
 // TRUST_PROXY_HEADERS=1 is set (Phase 5 IIS deploy sets this in nssm); off
 // by default so dev / mis-deploy can't have a caller bypass the /api/refresh
 // rate-limit bucket by sending a forged X-Forwarded-For.
-export function clientIp(headers: Headers): string {
+export function clientIp(req: { headers: Headers; ip?: string }): string {
   if (process.env.TRUST_PROXY_HEADERS === '1') {
-    const fwd = headers.get('x-forwarded-for');
+    const fwd = req.headers.get('x-forwarded-for');
     if (fwd) {
       const first = fwd.split(',')[0]?.trim();
       if (first) return first;
     }
-    const real = headers.get('x-real-ip');
+    const real = req.headers.get('x-real-ip');
     if (real) return real.trim();
   }
-  return 'unknown';
+  return req.ip ?? 'unknown';
 }
 
 /**

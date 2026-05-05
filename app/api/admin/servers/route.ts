@@ -49,6 +49,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'game not found' }, { status: 422 });
   }
 
-  const id = createServer({ name: name.trim(), host: host.trim(), port: portNum, game_id });
-  return NextResponse.json({ id }, { status: 201 });
+  try {
+    const id = createServer({ name: name.trim(), host: host.trim(), port: portNum, game_id });
+    return NextResponse.json({ id }, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: 'internal error' }, { status: 500 });
+  }
 }

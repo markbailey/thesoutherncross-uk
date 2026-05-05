@@ -30,8 +30,12 @@ export interface SceneProps {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
-function hexToHue(hex: string): number {
-  const m = hex.replace('#', '');
+function colorToHue(color: string): number {
+  // Handle hsl(H, ...) strings from computePlanet
+  const hslMatch = color.match(/^hsl\((\d+(?:\.\d+)?)/);
+  if (hslMatch) return Number(hslMatch[1]);
+  // Hex fallback
+  const m = color.replace('#', '');
   const r = parseInt(m.slice(0, 2), 16) / 255;
   const g = parseInt(m.slice(2, 4), 16) / 255;
   const b = parseInt(m.slice(4, 6), 16) / 255;
@@ -569,7 +573,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     const planetMeshes: PlanetMesh[] = [];
     const initialGames = gamesRef.current;
     initialGames.forEach((g, i) => {
-      const hue = hexToHue(g.planet.color);
+      const hue = colorToHue(g.planet.color);
       const pr = g.planet.size * 12;
       const orbitR = g.planet.orbitRadius * 22;
 
@@ -722,7 +726,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
         const anyOn = g.servers.some((s) => s.online);
         const anyWarn = g.servers.some((s) => statusOf(s) === 'warn');
         const dotClass = anyOn ? (anyWarn ? 'warn' : 'on') : 'off';
-        const hue = hexToHue(g.planet.color);
+        const hue = colorToHue(g.planet.color);
         const short = g.id.slice(0, 3).toUpperCase();
         const shardWord = g.servers.length === 1 ? 'SHARD' : 'SHARDS';
         lb.el.innerHTML = `
@@ -1113,10 +1117,14 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     };
     containerExt.__startSceneLoop = startLoop;
     containerExt.__stopSceneLoop = stopLoop;
-    if (visibleRef.current) startLoop();
+    // Start unconditionally — the visibility watcher (which fires async via IO)
+    // will call stopLoop if the section is offscreen. Gating here caused the loop
+    // to never start because visibleRef is always false at build time.
+    startLoop();
 
     // Cleanup
     return () => {
+      builtRef.current = false; // allow rebuild after unmount (React Strict Mode re-mounts)
       stopLoop();
       containerExt.__startSceneLoop = undefined;
       containerExt.__stopSceneLoop = undefined;

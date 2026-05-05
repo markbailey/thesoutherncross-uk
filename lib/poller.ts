@@ -128,39 +128,49 @@ export function createPoller(options: PollerOptions): Poller {
   let serverTimer: NodeJS.Timeout | null = null;
   let memberTimer: NodeJS.Timeout | null = null;
   let running = false;
+  let serverPollInFlight = false;
+  let memberPollInFlight = false;
 
   async function pollAllServers(): Promise<void> {
-    const now = Date.now();
-    // options.games is an escape hatch for tests; production reads from the DB.
-    const servers: ServerConfig[] = options.games
-      ? gamesList.flatMap((g) => g.servers.filter((s) => !s.hidden))
-      : (listEnabled() as unknown as ServerConfig[]);
+    if (serverPollInFlight) {
+      log.warn('pollAllServers still running; skipping tick');
+      return;
+    }
+    serverPollInFlight = true;
+    try {
+      // options.games is an escape hatch for tests; production reads from the DB.
+      const servers: ServerConfig[] = options.games
+        ? gamesList.flatMap((g) => g.servers.filter((s) => !s.hidden))
+        : (listEnabled() as unknown as ServerConfig[]);
 
-    for (const server of servers) {
-      try {
-        const result = await queryServer(server);
-        writeStatusRow(server.id, result, now);
-        if (result.online) {
-          log.debug({ serverId: server.id, players: result.players }, 'server online');
-        } else {
-          log.info({ serverId: server.id, reason: result.reason }, 'server offline');
+      for (const server of servers) {
+        try {
+          const result = await queryServer(server);
+          writeStatusRow(server.id, result, Date.now());
+          if (result.online) {
+            log.debug({ serverId: server.id, players: result.players }, 'server online');
+          } else {
+            log.info({ serverId: server.id, reason: result.reason }, 'server offline');
+          }
+        } catch (err) {
+          log.error({ serverId: server.id, err }, 'server poll crashed');
         }
-      } catch (err) {
-        log.error({ serverId: server.id, err }, 'server poll crashed');
       }
-    }
 
-    try {
-      const deleted = pruneStatusHistory(STATUS_HISTORY_HOURS);
-      if (deleted > 0) log.debug({ deleted }, 'pruned status history');
-    } catch (err) {
-      log.error({ err }, 'status history prune failed');
-    }
+      try {
+        const deleted = pruneStatusHistory(STATUS_HISTORY_HOURS);
+        if (deleted > 0) log.debug({ deleted }, 'pruned status history');
+      } catch (err) {
+        log.error({ err }, 'status history prune failed');
+      }
 
-    try {
-      setLastPollAt(Date.now());
-    } catch (err) {
-      log.error({ err }, 'failed to record lastPollAt');
+      try {
+        setLastPollAt(Date.now());
+      } catch (err) {
+        log.error({ err }, 'failed to record lastPollAt');
+      }
+    } finally {
+      serverPollInFlight = false;
     }
   }
 
@@ -169,6 +179,11 @@ export function createPoller(options: PollerOptions): Poller {
       log.debug('skipping member refresh: steam credentials not configured');
       return;
     }
+    if (memberPollInFlight) {
+      log.warn('refreshMembersOnce still running; skipping tick');
+      return;
+    }
+    memberPollInFlight = true;
     try {
       const ids = await fetchGroupMembers(options.steamGroupId);
       const summaries = await fetchPlayerSummaries(ids, options.steamApiKey);
@@ -182,6 +197,8 @@ export function createPoller(options: PollerOptions): Poller {
       } catch (flagErr) {
         log.error({ err: flagErr }, 'failed to set members.stale flag');
       }
+    } finally {
+      memberPollInFlight = false;
     }
   }
 

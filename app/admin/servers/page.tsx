@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listAll } from '../../../lib/repos/servers';
 import { getDb } from '../../../lib/db';
 import DeleteServerButton from './DeleteServerButton';
+import HideToggleButton from './HideToggleButton';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -116,7 +117,7 @@ export default function AdminServersPage() {
               borderBottom: '1px solid var(--hair)',
             }}
           >
-            {['NAME', 'HOST:PORT', 'PROTOCOL', 'STATUS', 'HIDDEN', 'ACTIONS'].map((col) => (
+            {['NAME', 'HOST:PORT', 'GAME', 'STATUS', 'HIDDEN', 'ACTIONS'].map((col) => (
               <span
                 key={col}
                 style={{
@@ -189,17 +190,14 @@ export default function AdminServersPage() {
                   {srv.port}
                 </div>
 
-                {/* Protocol */}
+                {/* Game */}
                 <div>
-                  {srv.protocol ? (
-                    <span
-                      className={`pill ${srv.protocol === 'source' ? 'green' : 'purple'}`}
-                      style={{ fontSize: 9, letterSpacing: '0.16em' }}
-                    >
-                      {srv.protocol.toUpperCase()}
+                  {srv.game_name ? (
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-dim)', letterSpacing: '0.06em' }}>
+                      {srv.game_name}
                     </span>
                   ) : (
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-faint)' }}>—</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: '#f59e0b', letterSpacing: '0.1em' }}>UNLINKED</span>
                   )}
                 </div>
 
@@ -271,26 +269,7 @@ export default function AdminServersPage() {
                     EDIT
                   </Link>
 
-                  <form action={`/api/admin/servers/${srv.id}`} method="POST" style={{ margin: 0 }}>
-                    <input type="hidden" name="_method" value="PATCH" />
-                    <input type="hidden" name="hidden" value={srv.hidden ? 'false' : 'true'} />
-                    <button
-                      type="submit"
-                      style={{
-                        fontFamily: 'var(--mono)',
-                        fontSize: 10,
-                        letterSpacing: '0.16em',
-                        color: srv.hidden ? 'var(--royal-green-neon)' : '#f59e0b',
-                        background: 'transparent',
-                        border: `1px solid ${srv.hidden ? 'var(--hair)' : 'rgba(245,158,11,0.3)'}`,
-                        padding: '4px 10px',
-                        cursor: 'pointer',
-                        transition: 'color .12s, border-color .12s',
-                      }}
-                    >
-                      {srv.hidden ? 'SHOW' : 'HIDE'}
-                    </button>
-                  </form>
+                  <HideToggleButton id={srv.id} hidden={Boolean(srv.hidden)} />
 
                   <DeleteServerButton id={srv.id} name={srv.name} />
                 </div>

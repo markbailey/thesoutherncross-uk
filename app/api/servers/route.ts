@@ -51,8 +51,10 @@ export function GET(): Response {
 
     let mostRecent: number | null = null;
 
-    const result = games.map((g) => {
-      const servers = (serverMap.get(g.id) ?? []).map((s) => {
+    const result = games.flatMap((g) => {
+      const srvRows = serverMap.get(g.id);
+      if (!srvRows || srvRows.length === 0) return [];
+      const servers = srvRows.map((s) => {
         const row = byId.get(s.id);
         if (row && (mostRecent === null || row.updated_at > mostRecent)) {
           mostRecent = row.updated_at;
