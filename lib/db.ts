@@ -101,6 +101,7 @@ export function getDb(options?: GetDbOptions): DbType {
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('synchronous = NORMAL');
+  db.pragma('foreign_keys = ON');
   runMigrations(db);
   instance = db;
   return db;

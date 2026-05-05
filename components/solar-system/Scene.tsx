@@ -746,42 +746,12 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     };
     updateLabelContent();
 
-    // updateMoonMaterials re-reads gamesRef.current and updates each moon's
-    // color/emissive based on the current per-server status. Keeps the 3D
-    // moon coloring in sync with SWR-polled status/ping changes without
-    // rebuilding any geometry/material.
-    const updateMoonMaterials = () => {
-      const fresh = gamesRef.current;
-      const byId = new Map<string, SceneGame>();
-      for (const g of fresh) byId.set(g.id, g);
-      planetMeshes.forEach((pm) => {
-        const g = byId.get(pm.data.id);
-        if (!g) return;
-        pm.moons.forEach((mm, mi) => {
-          const srv = g.servers.find((s) => s.id === mm.serverId);
-          if (!srv) return;
-          const tone = statusOf(srv);
-          const moonHue = tone === 'on' ? 145 : tone === 'warn' ? 40 : 0;
-          const mat = mm.mesh.material as THREE.MeshStandardMaterial;
-          mat.color.set(`hsl(${moonHue + (mi - 1) * 10}, 50%, 55%)`);
-          mat.emissive.set(`hsl(${moonHue}, 60%, 30%)`);
-        });
-      });
-    };
-
-    // expose so the prop-watch effect can call them
+    // expose so the prop-watch effect can call it
     (
       container as HTMLDivElement & {
         __updateLabels?: () => void;
-        __updateMoons?: () => void;
       }
     ).__updateLabels = updateLabelContent;
-    (
-      container as HTMLDivElement & {
-        __updateLabels?: () => void;
-        __updateMoons?: () => void;
-      }
-    ).__updateMoons = updateMoonMaterials;
 
     // Resize
     const onResize = () => {
@@ -1161,18 +1131,15 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [games.length]);
 
-  // Prop-watch effect: whenever games change, refresh label content and moon
-  // material colors. Both flow from gamesRef.current so SWR-polled status
-  // changes reach the DOM and the 3D moons without rebuilding the scene.
+  // Prop-watch effect: whenever games change, refresh label content.
+  // Moon materials stay fixed (gray resting state set at init).
   React.useEffect(() => {
     const container = wrapperRef.current as
       | (HTMLDivElement & {
           __updateLabels?: () => void;
-          __updateMoons?: () => void;
         })
       | null;
     container?.__updateLabels?.();
-    container?.__updateMoons?.();
   }, [games]);
 
   return (
