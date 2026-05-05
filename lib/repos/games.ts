@@ -1,4 +1,4 @@
-import { getDb } from '../db';
+import { getDb, withTransaction } from '../db';
 import type { Protocol } from '../types/servers.js';
 
 export type GameRow = {
@@ -75,14 +75,15 @@ export function getGameById(id: string): GameRow | undefined {
 }
 
 export function createGame(input: { name: string; protocol: Protocol }): string {
-  const db = getDb();
-  const id = generateId(input.name);
-  const orbitIndex = nextOrbitIndex();
-  const now = Date.now();
-  db.prepare(
-    `INSERT INTO games (id, name, protocol, orbit_index, created_at) VALUES (?, ?, ?, ?, ?)`
-  ).run(id, input.name, input.protocol, orbitIndex, now);
-  return id;
+  return withTransaction(() => {
+    const id = generateId(input.name);
+    const orbitIndex = nextOrbitIndex();
+    const now = Date.now();
+    getDb().prepare(
+      `INSERT INTO games (id, name, protocol, orbit_index, created_at) VALUES (?, ?, ?, ?, ?)`
+    ).run(id, input.name, input.protocol, orbitIndex, now);
+    return id;
+  });
 }
 
 export function deleteGame(id: string): void {
