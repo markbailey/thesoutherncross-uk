@@ -17,6 +17,16 @@ function defaultPath(): string {
 
 function runMigrations(db: DbType): void {
   db.exec(`
+    CREATE TABLE IF NOT EXISTS games (
+      id          TEXT    PRIMARY KEY,
+      name        TEXT    NOT NULL,
+      protocol    TEXT    NOT NULL,
+      orbit_index INTEGER NOT NULL,
+      created_at  INTEGER NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_games_orbit_index ON games (orbit_index);
+
     CREATE TABLE IF NOT EXISTS server_status (
       id TEXT PRIMARY KEY,
       online INTEGER NOT NULL,
@@ -60,12 +70,19 @@ function runMigrations(db: DbType): void {
       name       TEXT NOT NULL,
       host       TEXT NOT NULL,
       port       INTEGER NOT NULL,
-      protocol   TEXT NOT NULL,
+      protocol   TEXT NOT NULL DEFAULT '',
+      game_id    TEXT REFERENCES games(id),
       hidden     INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
   `);
+
+  // Incremental: add game_id column to servers if migrating an existing DB
+  const serverCols = db.prepare(`PRAGMA table_info(servers)`).all() as { name: string }[];
+  if (!serverCols.some((c) => c.name === 'game_id')) {
+    db.exec(`ALTER TABLE servers ADD COLUMN game_id TEXT REFERENCES games(id)`);
+  }
 }
 
 export function getDb(options?: GetDbOptions): DbType {

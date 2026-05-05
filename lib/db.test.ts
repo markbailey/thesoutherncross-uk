@@ -84,3 +84,20 @@ describe('db', () => {
     expect(a).toBe(b);
   });
 });
+
+describe('schema migrations', () => {
+  beforeEach(() => { closeDb(); getDb({ dbPath: ':memory:' }); });
+  afterEach(() => closeDb());
+
+  it('creates games table', () => {
+    const db = getDb();
+    const row = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='games'`).get();
+    expect(row).toBeDefined();
+  });
+
+  it('servers table has game_id column', () => {
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(servers)`).all() as { name: string }[];
+    expect(cols.some(c => c.name === 'game_id')).toBe(true);
+  });
+});
