@@ -8,7 +8,8 @@ export type SessionData = {
 };
 
 const SESSION_SECRET = process.env['SESSION_SECRET'];
-if (!SESSION_SECRET && process.env.NODE_ENV === 'production') {
+const isDemoMode = process.env['DEMO_SERVERS'] === '1';
+if (!SESSION_SECRET && !isDemoMode) {
   throw new Error('SESSION_SECRET environment variable is required');
 }
 
