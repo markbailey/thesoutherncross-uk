@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { listAll } from '../../../lib/repos/servers';
 import { getDb } from '../../../lib/db';
+import DeleteServerButton from './DeleteServerButton';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -190,12 +191,16 @@ export default function AdminServersPage() {
 
                 {/* Protocol */}
                 <div>
-                  <span
-                    className={`pill ${srv.protocol === 'source' ? 'green' : 'purple'}`}
-                    style={{ fontSize: 9, letterSpacing: '0.16em' }}
-                  >
-                    {srv.protocol.toUpperCase()}
-                  </span>
+                  {srv.protocol ? (
+                    <span
+                      className={`pill ${srv.protocol === 'source' ? 'green' : 'purple'}`}
+                      style={{ fontSize: 9, letterSpacing: '0.16em' }}
+                    >
+                      {srv.protocol.toUpperCase()}
+                    </span>
+                  ) : (
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-faint)' }}>—</span>
+                  )}
                 </div>
 
                 {/* Status */}
@@ -287,30 +292,7 @@ export default function AdminServersPage() {
                     </button>
                   </form>
 
-                  <form action={`/api/admin/servers/${srv.id}`} method="POST" style={{ margin: 0 }}>
-                    <input type="hidden" name="_method" value="DELETE" />
-                    <button
-                      type="submit"
-                      onClick={(e) => {
-                        if (!confirm(`Delete server "${srv.name}"? This cannot be undone.`)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      style={{
-                        fontFamily: 'var(--mono)',
-                        fontSize: 10,
-                        letterSpacing: '0.16em',
-                        color: '#ef4444',
-                        background: 'transparent',
-                        border: '1px solid rgba(239,68,68,0.3)',
-                        padding: '4px 10px',
-                        cursor: 'pointer',
-                        transition: 'color .12s, border-color .12s',
-                      }}
-                    >
-                      DEL
-                    </button>
-                  </form>
+                  <DeleteServerButton id={srv.id} name={srv.name} />
                 </div>
               </div>
             );

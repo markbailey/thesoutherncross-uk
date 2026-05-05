@@ -9,7 +9,7 @@ type ServerData = {
   name: string;
   host: string;
   port: number;
-  protocol: string;
+  game_id: string | null;
   hidden: boolean;
 };
 
@@ -20,6 +20,7 @@ export default function EditServerPage({ params }: PageProps) {
   const router = useRouter();
 
   const [server, setServer] = useState<ServerData | null>(null);
+  const [games, setGames] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -39,6 +40,10 @@ export default function EditServerPage({ params }: PageProps) {
         }
       })
       .catch(() => { setError('Failed to load server'); setLoading(false); });
+
+    fetch('/api/admin/games')
+      .then((r) => r.json())
+      .then((d) => setGames((d as { games: { id: string; name: string }[] }).games ?? []));
   }, [id]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -55,7 +60,7 @@ export default function EditServerPage({ params }: PageProps) {
       name: data.get('name') as string,
       host: data.get('host') as string,
       port: Number(data.get('port')),
-      protocol: data.get('protocol') as string,
+      game_id: data.get('game_id') as string,
     };
 
     try {
@@ -235,13 +240,13 @@ export default function EditServerPage({ params }: PageProps) {
             <EditField id="port" name="port" label="PORT" type="number" defaultValue={String(server.port)} min={1} max={65535} required />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label htmlFor="protocol" style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
-                PROTOCOL
+              <label htmlFor="game_id" style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--ink-faint)' }}>
+                GAME
               </label>
               <select
-                id="protocol"
-                name="protocol"
-                defaultValue={server.protocol}
+                id="game_id"
+                name="game_id"
+                defaultValue={server.game_id ?? ''}
                 required
                 style={{
                   fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.08em',
@@ -251,8 +256,7 @@ export default function EditServerPage({ params }: PageProps) {
                   appearance: 'none', WebkitAppearance: 'none',
                 }}
               >
-                <option value="source">SOURCE</option>
-                <option value="minecraft">MINECRAFT</option>
+                {games.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
             </div>
 
