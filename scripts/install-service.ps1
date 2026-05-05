@@ -27,13 +27,21 @@
 # (interactive GUI).
 # ----------------------------------------------------------------------------
 
+[CmdletBinding()]
+param(
+    [string] $ServiceName = 'TheSouthernCrossUK',
+    [string] $SiteRoot    = 'C:\inetpub\wwwroot',
+    [string] $NssmPath    = 'C:\nssm\nssm.exe',
+    [string] $NodeExe     = 'C:\Program Files\nodejs\node.exe'
+)
+
 $ErrorActionPreference = 'Stop'
 
-# --- Parameters (override at top of script if your layout differs) ----------
-$svc      = 'TheSouthernCrossUK'
-$siteRoot = 'C:\inetpub\wwwroot'
-$nssm     = 'C:\nssm\nssm.exe'
-$nodeExe  = 'C:\Program Files\nodejs\node.exe'
+# --- Resolve parameters to local names used throughout ----------------------
+$svc      = $ServiceName
+$siteRoot = $SiteRoot
+$nssm     = $NssmPath
+$nodeExe  = $NodeExe
 
 # Entrypoint: node + tsx CLI .mjs + server.ts. See "Choices" comment above.
 $tsxCli   = Join-Path $siteRoot 'node_modules\tsx\dist\cli.mjs'

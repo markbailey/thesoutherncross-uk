@@ -16,7 +16,11 @@ On the target box:
 - Windows + PowerShell 5+ (or 7+)
 - `C:\Windows\System32\tar.exe` (bsdtar — ships with Windows 10/11 + Server 2019+)
 - `C:\nssm\nssm.exe` (override with `-NssmPath`)
-- Node 20+ on PATH
+- Node 20+ installed at `C:\Program Files\nodejs\` (the default Windows
+  installer path — `scripts\install-service.ps1` hardcodes
+  `C:\Program Files\nodejs\node.exe` for the service executable; custom
+  install directories such as nvm will pass `npm ci`/`npm run build` but
+  cause the service registration step to fail)
 - Service `TheSouthernCrossUK` already registered (or accept that the script
   registers it on first run via `scripts\install-service.ps1`)
 
@@ -36,6 +40,14 @@ PowerShell -ExecutionPolicy Bypass -File C:\inetpub\wwwroot\scripts\deploy.ps1 `
 The script lives at `C:\inetpub\wwwroot\scripts\deploy.ps1` from the previous
 deploy and is safe to run while wwwroot is being renamed (PowerShell loads
 `.ps1` into memory before executing).
+
+> **Warning — script is one release behind:** the routine deploy executes the
+> `deploy.ps1` that shipped with the *previous* release. If the release being
+> deployed contains a fix to `deploy.ps1` itself, the fixed script will not
+> run this time — it will only take effect on the *next* deploy. For the first
+> deploy of any `deploy.ps1` fix, use the first-time bootstrap path below
+> (extract `scripts\` from the new zip and invoke from `C:\deploy\scripts\`)
+> so the corrected script runs immediately.
 
 ### First-time deploy (no on-box copy yet)
 
@@ -144,13 +156,14 @@ nssm start TheSouthernCrossUK
 | Failure                                 | Script behavior                                                | Operator action |
 | --------------------------------------- | -------------------------------------------------------------- | --------------- |
 | Zip not found / corrupt                 | Aborts before any state change.                                | Re-transfer the bundle. |
-| `tar.exe` / `nssm.exe` missing          | Aborts before any state change.                                | Run `scripts\install-prereqs.ps1`. |
+| `tar.exe` missing                        | Aborts before any state change.                                | `tar.exe` (bsdtar) is an OS-provided prerequisite on Windows 10/11 and Server 2019+; `install-prereqs.ps1` does not install it. Upgrade the OS or obtain bsdtar separately. |
+| `nssm.exe` missing                       | Aborts before any state change.                                | Run `scripts\install-prereqs.ps1`. |
 | Lingering `node.exe` locking files      | Force-killed automatically.                                    | None — script handles it. |
-| `Rename-Item` on `wwwroot` fails (lock) | Aborts before snapshot is taken; nothing changed.              | Reboot or find the holder via `handle.exe`. |
+| `Rename-Item` on `wwwroot` fails (lock) | Aborts after the service is stopped and lingering node processes are killed; the site is down. | Find the lock holder via `handle.exe`, clear it, then restart the service manually: `nssm start TheSouthernCrossUK`. Reboot if the lock cannot be cleared. |
 | `npm ci` fails (EPERM / network)        | Rollback. Snapshot restored. Service running on old version.   | Investigate, re-deploy. |
 | `npm run build` fails                   | Rollback. Snapshot restored.                                   | Fix in dev, re-build bundle. |
 | `install-service.ps1` fails             | Rollback.                                                      | Check nssm install / `.env` parsing. |
-| Smoke test fails (60s)                  | Rollback. Old service running.                                 | Tail `logs\nssm.err.log` and `logs\app.log` from the snapshot. |
+| Smoke test fails (60s)                  | Rollback. Old service running.                                 | After automatic rollback the failed install is deleted — there is no snapshot to inspect. To preserve the broken install for forensics, re-run with `-SkipRollback`, then tail `logs\nssm.err.log` and `logs\app.log` from the live (broken) `wwwroot`. Remember to roll back manually afterwards. |
 
 ---
 
@@ -162,6 +175,7 @@ automated separately, run on dev:
 ```powershell
 npm run typecheck
 npm run test
+npm run test:e2e
 npm run build
 # then the staging + zip block from deploy.md B.2
 ```

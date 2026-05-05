@@ -110,9 +110,19 @@ if ($serviceExists) {
     Note "$ServiceName not installed - treating as first-time deploy"
 }
 
-$lingering = Get-Process node, tsx -ErrorAction SilentlyContinue
+# Scope kill to processes whose working directory is $SiteRoot to avoid
+# taking down unrelated Node services on a shared host.
+$lingering = Get-Process node, tsx -ErrorAction SilentlyContinue |
+    Where-Object {
+        try { $_.MainModule.FileName -or $true } catch { $true }
+        # Filter by working directory reported via WMI to stay scoped.
+        $wmi = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue
+        $wmi -and $wmi.ExecutablePath -and
+            ($wmi.CommandLine -like "*$SiteRoot*" -or
+             ($wmi.ExecutablePath -like "$SiteRoot*"))
+    }
 if ($lingering) {
-    Note "Killing lingering node/tsx pids: $($lingering.Id -join ', ')"
+    Note "Killing lingering node/tsx pids scoped to ${SiteRoot}: $($lingering.Id -join ', ')"
     $lingering | Stop-Process -Force
     Start-Sleep -Seconds 1
 }
@@ -139,32 +149,75 @@ function Invoke-Rollback {
     if (Test-Path $SiteRoot) { Remove-Item -Recurse -Force $SiteRoot -ErrorAction SilentlyContinue }
     Rename-Item -LiteralPath $prev -NewName $leaf
     & $NssmPath start $ServiceName 2>&1 | Out-Null
-    Note "Rolled back. Failed install at: $prev (renamed back). Investigate before retry."
+    Note "Rolled back. Site restored to $SiteRoot. Investigate before retry (use -SkipRollback to suppress auto-rollback)."
 }
 
-# --- swap staging -> SiteRoot ----------------------------------------------
+# --- swap staging -> SiteRoot (rollback on failure) ------------------------
 
 Step "Installing new bundle to $SiteRoot"
-Move-Item -LiteralPath $staging -Destination $SiteRoot
-New-Item -ItemType Directory -Force -Path (Join-Path $SiteRoot 'logs') | Out-Null
+$requiredEnvKeys = @('REFRESH_SECRET', 'STEAM_API_KEY', 'STEAM_GROUP_ID')
+try {
+    Move-Item -LiteralPath $staging -Destination $SiteRoot
+    New-Item -ItemType Directory -Force -Path (Join-Path $SiteRoot 'logs') | Out-Null
+} catch {
+    if (-not $SkipRollback) { Invoke-Rollback }
+    Die "Failed to install bundle to ${SiteRoot}: $_"
+}
 
-# --- restore stateful files from snapshot ----------------------------------
+# --- restore stateful files from snapshot (rollback on failure) ------------
 
-if ($snapshotted) {
-    $envSrc = Join-Path $prev '.env'
-    if (Test-Path $envSrc) {
-        Copy-Item $envSrc (Join-Path $SiteRoot '.env') -Force
-        Ok ".env restored from snapshot"
+try {
+    if ($snapshotted) {
+        $envSrc = Join-Path $prev '.env'
+        if (Test-Path $envSrc) {
+            Copy-Item $envSrc (Join-Path $SiteRoot '.env') -Force
+            Ok ".env restored from snapshot"
+        } else {
+            Note "No .env in snapshot - $SiteRoot\.env must hold prod values before service start"
+        }
+
+        # Preserve on-box web.config — it may contain local IIS/TLS tweaks that
+        # the bundle copy must not overwrite.
+        $webConfigSrc = Join-Path $prev 'web.config'
+        if (Test-Path $webConfigSrc) {
+            Copy-Item $webConfigSrc (Join-Path $SiteRoot 'web.config') -Force
+            Ok "web.config preserved from snapshot"
+        }
+
+        $dataSrc = Join-Path $prev 'data'
+        if (Test-Path $dataSrc) {
+            Copy-Item $dataSrc $SiteRoot -Recurse -Force
+            Ok "data\ restored from snapshot"
+        }
     } else {
-        Note "No .env in snapshot - $SiteRoot\.env must hold prod values before service start"
+        # First-time deploy: validate required env vars exist before proceeding.
+        Note "First-time deploy: $SiteRoot\.env must be populated with prod values."
+        $envFile = Join-Path $SiteRoot '.env'
+        $missingKeys = @()
+        if (Test-Path $envFile) {
+            $envContent = Get-Content $envFile -Raw
+            foreach ($key in $requiredEnvKeys) {
+                if ($envContent -notmatch "(?m)^$key=.+") { $missingKeys += $key }
+            }
+        } else {
+            $missingKeys = $requiredEnvKeys
+        }
+        if ($missingKeys.Count -gt 0) {
+            Note "Missing required env keys: $($missingKeys -join ', ')"
+            Note "Edit $envFile and set these values, then press Enter to continue (or Ctrl+C to abort)."
+            Read-Host "Press Enter once .env is ready"
+            # Re-check after operator edit.
+            $envContent = if (Test-Path $envFile) { Get-Content $envFile -Raw } else { '' }
+            $stillMissing = $missingKeys | Where-Object { $envContent -notmatch "(?m)^$_=.+" }
+            if ($stillMissing.Count -gt 0) {
+                if (-not $SkipRollback) { Invoke-Rollback }
+                Die "Required env keys still missing after edit: $($stillMissing -join ', ')"
+            }
+        }
     }
-    $dataSrc = Join-Path $prev 'data'
-    if (Test-Path $dataSrc) {
-        Copy-Item $dataSrc $SiteRoot -Recurse -Force
-        Ok "data\ restored from snapshot"
-    }
-} else {
-    Note "First-time deploy: edit $SiteRoot\.env with prod values before continuing"
+} catch {
+    if (-not $SkipRollback) { Invoke-Rollback }
+    Die "Failed to restore stateful files: $_"
 }
 
 # --- npm ci + build (rollback on failure) ----------------------------------
@@ -194,7 +247,10 @@ if (-not (Test-Path $installScript)) {
 }
 
 Step "install-service.ps1 (registers service or refreshes env from .env)"
-& PowerShell -ExecutionPolicy Bypass -File $installScript
+& PowerShell -ExecutionPolicy Bypass -File $installScript `
+    -ServiceName $ServiceName `
+    -SiteRoot    $SiteRoot `
+    -NssmPath    $NssmPath
 if ($LASTEXITCODE -ne 0) {
     if (-not $SkipRollback) { Invoke-Rollback }
     Die "install-service.ps1 failed (exit $LASTEXITCODE)"
