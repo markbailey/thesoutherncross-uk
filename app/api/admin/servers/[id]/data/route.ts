@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext): Promise<NextRes
     name: server.name,
     host: server.host,
     port: server.port,
-    protocol: server.protocol,
+    game_id: server.game_id,
     hidden: Boolean(server.hidden),
   });
 }

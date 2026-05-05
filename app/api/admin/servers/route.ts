@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { sessionOptions, type SessionData } from '../../../../lib/auth/session';
 import { isAdmin } from '../../../../lib/auth/roles';
 import { createServer } from '../../../../lib/repos/servers';
-import type { Protocol } from '../../../../lib/types/servers';
+import { getGameById } from '../../../../lib/repos/games';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'invalid body' }, { status: 400 });
   }
 
-  const { name, host, port, protocol } = body as Record<string, unknown>;
+  const { name, host, port, game_id } = body as Record<string, unknown>;
 
   if (typeof name !== 'string' || !name.trim()) {
     return NextResponse.json({ error: 'name required' }, { status: 400 });
@@ -42,16 +42,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
     return NextResponse.json({ error: 'invalid port' }, { status: 400 });
   }
-  if (protocol !== 'source' && protocol !== 'minecraft') {
-    return NextResponse.json({ error: 'invalid protocol' }, { status: 400 });
+  if (typeof game_id !== 'string' || !game_id.trim()) {
+    return NextResponse.json({ error: 'game_id required' }, { status: 400 });
+  }
+  if (!getGameById(game_id)) {
+    return NextResponse.json({ error: 'game not found' }, { status: 422 });
   }
 
-  const id = createServer({
-    name: name.trim(),
-    host: host.trim(),
-    port: portNum,
-    protocol: protocol as Protocol,
-  });
-
+  const id = createServer({ name: name.trim(), host: host.trim(), port: portNum, game_id });
   return NextResponse.json({ id }, { status: 201 });
 }

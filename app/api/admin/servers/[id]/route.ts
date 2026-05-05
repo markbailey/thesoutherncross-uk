@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { sessionOptions, type SessionData } from '../../../../../lib/auth/session';
 import { isAdmin } from '../../../../../lib/auth/roles';
 import { getById, updateServer, deleteServer, setHidden } from '../../../../../lib/repos/servers';
-import type { Protocol } from '../../../../../lib/types/servers';
+import { getGameById } from '../../../../../lib/repos/games';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,17 +26,14 @@ export async function PUT(req: NextRequest, ctx: RouteContext): Promise<NextResp
   if (!server) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
   let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
-  }
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: 'invalid json' }, { status: 400 }); }
 
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ error: 'invalid body' }, { status: 400 });
   }
 
-  const { name, host, port, protocol } = body as Record<string, unknown>;
+  const { name, host, port, game_id } = body as Record<string, unknown>;
   const patch: Parameters<typeof updateServer>[1] = {};
 
   if (name !== undefined) {
@@ -58,11 +55,14 @@ export async function PUT(req: NextRequest, ctx: RouteContext): Promise<NextResp
     }
     patch.port = portNum;
   }
-  if (protocol !== undefined) {
-    if (protocol !== 'source' && protocol !== 'minecraft') {
-      return NextResponse.json({ error: 'invalid protocol' }, { status: 400 });
+  if (game_id !== undefined) {
+    if (typeof game_id !== 'string' || !game_id.trim()) {
+      return NextResponse.json({ error: 'game_id must be non-empty string' }, { status: 400 });
     }
-    patch.protocol = protocol as Protocol;
+    if (!getGameById(game_id)) {
+      return NextResponse.json({ error: 'game not found' }, { status: 422 });
+    }
+    patch.game_id = game_id;
   }
 
   updateServer(id, patch);
@@ -74,8 +74,7 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext): Promise<Next
   if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await ctx.params;
-  const server = getById(id);
-  if (!server) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  if (!getById(id)) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
   deleteServer(id);
   return NextResponse.json({ ok: true });
@@ -86,15 +85,11 @@ export async function PATCH(req: NextRequest, ctx: RouteContext): Promise<NextRe
   if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await ctx.params;
-  const server = getById(id);
-  if (!server) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  if (!getById(id)) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
   let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
-  }
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: 'invalid json' }, { status: 400 }); }
 
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ error: 'invalid body' }, { status: 400 });
