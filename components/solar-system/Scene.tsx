@@ -608,15 +608,12 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
       const moons: PlanetMesh['moons'] = [];
       g.servers.forEach((srv, mi) => {
         const mGeom = new THREE.SphereGeometry(Math.max(1.8, pr * 0.18), 24, 24);
-        const tone = statusOf(srv);
-        const moonHue =
-          tone === 'on' ? 145 : tone === 'warn' ? 40 : 0;
         const mMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(`hsl(${moonHue + (mi - 1) * 10}, 50%, 55%)`),
-          emissive: new THREE.Color(`hsl(${moonHue}, 60%, 30%)`),
-          emissiveIntensity: 0.6,
-          roughness: 0.85,
-          metalness: 0.1,
+          color: new THREE.Color('#8a8fa8'),
+          emissive: new THREE.Color('#3a3d4a'),
+          emissiveIntensity: 0.4,
+          roughness: 0.9,
+          metalness: 0.05,
         });
         const mMesh = new THREE.Mesh(mGeom, mMat);
         const angle = (mi / Math.max(1, g.servers.length)) * Math.PI * 2;
