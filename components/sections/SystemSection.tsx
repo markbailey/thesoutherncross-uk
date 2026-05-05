@@ -36,8 +36,10 @@ interface ApiGame {
   planet: { color: string; size: number; orbitRadius: number; orbitSpeed: number };
   servers: ApiServer[];
 }
+// API response: demo mode returns { games }, live DB returns { servers }.
 interface ApiResponse {
-  games: ApiGame[];
+  games?: ApiGame[];
+  servers?: ApiServer[];
   updatedAt: number | null;
 }
 
@@ -63,34 +65,64 @@ const CONNECT_STRINGS: Record<string, string> = (() => {
 // (game/server names, planet visuals, server status/players/map/ping) and
 // ignores only `updatedAt` (top-level + per-server) since it's not rendered —
 // diffing it would trigger spurious re-renders every poll without affecting UI.
+// Handles both demo mode ({ games }) and live DB mode ({ servers }).
 function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  if (a.games.length !== b.games.length) return false;
-  for (let i = 0; i < a.games.length; i++) {
-    const ga = a.games[i];
-    const gb = b.games[i];
+
+  // Compare flat servers list (live DB mode)
+  if (a.servers !== undefined || b.servers !== undefined) {
+    const sa = a.servers ?? [];
+    const sb = b.servers ?? [];
+    if (sa.length !== sb.length) return false;
+    for (let i = 0; i < sa.length; i++) {
+      const x = sa[i];
+      const y = sb[i];
+      if (!x || !y) return false;
+      if (
+        x.id !== y.id ||
+        x.name !== y.name ||
+        x.online !== y.online ||
+        x.players !== y.players ||
+        x.maxPlayers !== y.maxPlayers ||
+        x.map !== y.map ||
+        x.ping !== y.ping
+      )
+        return false;
+    }
+    return true;
+  }
+
+  // Compare games list (demo mode)
+  const ga = a.games ?? [];
+  const gb = b.games ?? [];
+  if (ga.length !== gb.length) return false;
+  for (let i = 0; i < ga.length; i++) {
+    const g1 = ga[i];
+    const g2 = gb[i];
+    if (!g1 || !g2) return false;
     if (
-      ga.id !== gb.id ||
-      ga.name !== gb.name ||
-      ga.planet.color !== gb.planet.color ||
-      ga.planet.size !== gb.planet.size ||
-      ga.planet.orbitRadius !== gb.planet.orbitRadius ||
-      ga.planet.orbitSpeed !== gb.planet.orbitSpeed
+      g1.id !== g2.id ||
+      g1.name !== g2.name ||
+      g1.planet.color !== g2.planet.color ||
+      g1.planet.size !== g2.planet.size ||
+      g1.planet.orbitRadius !== g2.planet.orbitRadius ||
+      g1.planet.orbitSpeed !== g2.planet.orbitSpeed
     )
       return false;
-    if (ga.servers.length !== gb.servers.length) return false;
-    for (let j = 0; j < ga.servers.length; j++) {
-      const sa = ga.servers[j];
-      const sb = gb.servers[j];
+    if (g1.servers.length !== g2.servers.length) return false;
+    for (let j = 0; j < g1.servers.length; j++) {
+      const s1 = g1.servers[j];
+      const s2 = g2.servers[j];
+      if (!s1 || !s2) return false;
       if (
-        sa.id !== sb.id ||
-        sa.name !== sb.name ||
-        sa.online !== sb.online ||
-        sa.players !== sb.players ||
-        sa.maxPlayers !== sb.maxPlayers ||
-        sa.map !== sb.map ||
-        sa.ping !== sb.ping
+        s1.id !== s2.id ||
+        s1.name !== s2.name ||
+        s1.online !== s2.online ||
+        s1.players !== s2.players ||
+        s1.maxPlayers !== s2.maxPlayers ||
+        s1.map !== s2.map ||
+        s1.ping !== s2.ping
       )
         return false;
     }
@@ -107,23 +139,46 @@ export function SystemSection() {
     compare: sameApiSnapshot,
   });
 
+  // Demo mode returns { games }, live DB returns { servers }. Normalise to OverlayGame[].
   const games: OverlayGame[] = React.useMemo(() => {
-    const apiGames = data?.games ?? [];
-    return apiGames.map((g) => ({
-      id: g.id,
-      name: g.name,
-      servers: g.servers.map<OverlayServer>((s) => ({
-        id: s.id,
-        name: s.name,
-        online: s.online,
-        players: s.players,
-        maxPlayers: s.maxPlayers,
-        map: s.map,
-        ping: s.ping,
-        updatedAt: s.updatedAt,
-      })),
-      connectStrings: CONNECT_STRINGS,
-    }));
+    if (data?.games) {
+      return data.games.map((g) => ({
+        id: g.id,
+        name: g.name,
+        servers: g.servers.map<OverlayServer>((s) => ({
+          id: s.id,
+          name: s.name,
+          online: s.online,
+          players: s.players,
+          maxPlayers: s.maxPlayers,
+          map: s.map,
+          ping: s.ping,
+          updatedAt: s.updatedAt,
+        })),
+        connectStrings: CONNECT_STRINGS,
+      }));
+    }
+    if (data?.servers) {
+      // Flat server list from DB — no game grouping or planet visuals.
+      return [
+        {
+          id: 'servers',
+          name: 'Servers',
+          servers: data.servers.map<OverlayServer>((s) => ({
+            id: s.id,
+            name: s.name,
+            online: s.online,
+            players: s.players,
+            maxPlayers: s.maxPlayers,
+            map: s.map,
+            ping: s.ping,
+            updatedAt: s.updatedAt,
+          })),
+          connectStrings: CONNECT_STRINGS,
+        },
+      ];
+    }
+    return [];
   }, [data]);
 
   const sceneGames = React.useMemo(

@@ -1,0 +1,110 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getIronSession } from 'iron-session';
+import { cookies } from 'next/headers';
+import { sessionOptions, type SessionData } from '../../../../../lib/auth/session';
+import { isAdmin } from '../../../../../lib/auth/roles';
+import { getById, updateServer, deleteServer, setHidden } from '../../../../../lib/repos/servers';
+import type { Protocol } from '../../../../../lib/types/servers';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+async function requireAdmin(): Promise<SessionData | null> {
+  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+  if (!session.steamid || !isAdmin(session.steamid)) return null;
+  return session;
+}
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function PUT(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
+  const { id } = await ctx.params;
+  const server = getById(id);
+  if (!server) return NextResponse.json({ error: 'not found' }, { status: 404 });
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+  }
+
+  const { name, host, port, protocol } = body as Record<string, unknown>;
+  const patch: Parameters<typeof updateServer>[1] = {};
+
+  if (name !== undefined) {
+    if (typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'name must be non-empty string' }, { status: 400 });
+    }
+    patch.name = name.trim();
+  }
+  if (host !== undefined) {
+    if (typeof host !== 'string' || !host.trim()) {
+      return NextResponse.json({ error: 'host must be non-empty string' }, { status: 400 });
+    }
+    patch.host = host.trim();
+  }
+  if (port !== undefined) {
+    const portNum = Number(port);
+    if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+      return NextResponse.json({ error: 'invalid port' }, { status: 400 });
+    }
+    patch.port = portNum;
+  }
+  if (protocol !== undefined) {
+    if (protocol !== 'source' && protocol !== 'minecraft') {
+      return NextResponse.json({ error: 'invalid protocol' }, { status: 400 });
+    }
+    patch.protocol = protocol as Protocol;
+  }
+
+  updateServer(id, patch);
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(_req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
+  const { id } = await ctx.params;
+  const server = getById(id);
+  if (!server) return NextResponse.json({ error: 'not found' }, { status: 404 });
+
+  deleteServer(id);
+  return NextResponse.json({ ok: true });
+}
+
+export async function PATCH(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
+  const { id } = await ctx.params;
+  const server = getById(id);
+  if (!server) return NextResponse.json({ error: 'not found' }, { status: 404 });
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+  }
+
+  const { hidden } = body as Record<string, unknown>;
+  if (typeof hidden !== 'boolean') {
+    return NextResponse.json({ error: 'hidden must be boolean' }, { status: 400 });
+  }
+
+  setHidden(id, hidden);
+  return NextResponse.json({ ok: true });
+}

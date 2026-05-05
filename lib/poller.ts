@@ -11,6 +11,7 @@ import {
   setMetaFlag,
   withTransaction,
 } from './db';
+import { listEnabled } from './repos/servers';
 import { childLogger } from './logger';
 import { queryServer, type QueryResult } from './query';
 import { fetchGroupMembers, fetchPlayerSummaries } from './steam';
@@ -130,9 +131,10 @@ export function createPoller(options: PollerOptions): Poller {
 
   async function pollAllServers(): Promise<void> {
     const now = Date.now();
-    const servers: ServerConfig[] = gamesList.flatMap((g) =>
-      g.servers.filter((s) => !s.hidden),
-    );
+    // options.games is an escape hatch for tests; production reads from the DB.
+    const servers: ServerConfig[] = options.games
+      ? gamesList.flatMap((g) => g.servers.filter((s) => !s.hidden))
+      : (listEnabled() as unknown as ServerConfig[]);
 
     for (const server of servers) {
       try {
