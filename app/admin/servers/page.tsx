@@ -1,28 +1,14 @@
 import Link from 'next/link';
-import { listAll } from '../../../lib/repos/servers';
-import { getDb } from '../../../lib/db';
+import { listAll, getAllServerStatuses } from '../../../lib/repos/servers';
 import DeleteServerButton from './DeleteServerButton';
 import HideToggleButton from './HideToggleButton';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-type StatusRow = {
-  online: number;
-  players: number | null;
-};
-
 export default function AdminServersPage() {
   const servers = listAll();
-  const db = getDb();
-
-  const statusById = new Map<string, StatusRow>();
-  for (const srv of servers) {
-    const row = db
-      .prepare('SELECT online, players FROM server_status WHERE id = ?')
-      .get(srv.id) as StatusRow | undefined;
-    if (row) statusById.set(srv.id, row);
-  }
+  const statusById = getAllServerStatuses();
 
   return (
     <>

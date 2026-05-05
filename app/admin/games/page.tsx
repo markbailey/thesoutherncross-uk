@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { listAllGames, computePlanet } from '../../../lib/repos/games';
-import { getDb } from '../../../lib/db';
+import { listAllGames, computePlanet, getAllGameServerCounts } from '../../../lib/repos/games';
 import DeleteGameButton from './DeleteGameButton';
 
 export const dynamic = 'force-dynamic';
@@ -8,15 +7,7 @@ export const runtime = 'nodejs';
 
 export default function AdminGamesPage() {
   const games = listAllGames();
-  const db = getDb();
-
-  const serverCountById = new Map<string, number>();
-  for (const g of games) {
-    const row = db
-      .prepare('SELECT COUNT(*) AS n FROM servers WHERE game_id = ?')
-      .get(g.id) as { n: number };
-    serverCountById.set(g.id, row.n);
-  }
+  const serverCountById = getAllGameServerCounts();
 
   return (
     <>

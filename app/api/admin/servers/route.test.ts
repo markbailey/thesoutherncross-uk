@@ -9,6 +9,11 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => mockCookieStore),
 }));
 
+// --- Mock lib/auth/session (avoids SESSION_SECRET env-var throw at import time) ---
+vi.mock('../../../../lib/auth/session', () => ({
+  sessionOptions: { password: 'test-secret', cookieName: 'tsx-session' },
+}));
+
 // --- Mock iron-session ---
 type MockSession = {
   steamid?: string;

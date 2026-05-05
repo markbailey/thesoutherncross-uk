@@ -1,4 +1,4 @@
-import { getDb } from '../db';
+import { getDb, withTransaction } from '../db';
 import type { Protocol } from '../types/servers.js';
 
 export type ServerRow = {
@@ -75,14 +75,15 @@ export function createServer(input: {
   port: number;
   game_id: string;
 }): string {
-  const db = getDb();
-  const id = generateId(input.name);
-  const now = Date.now();
-  db.prepare(
-    `INSERT INTO servers (id, name, host, port, protocol, game_id, hidden, created_at, updated_at)
-     VALUES (?, ?, ?, ?, '', ?, 0, ?, ?)`
-  ).run(id, input.name, input.host, input.port, input.game_id, now, now);
-  return id;
+  return withTransaction(() => {
+    const id = generateId(input.name);
+    const now = Date.now();
+    getDb().prepare(
+      `INSERT INTO servers (id, name, host, port, protocol, game_id, hidden, created_at, updated_at)
+       VALUES (?, ?, ?, ?, '', ?, 0, ?, ?)`
+    ).run(id, input.name, input.host, input.port, input.game_id, now, now);
+    return id;
+  });
 }
 
 export function updateServer(
@@ -118,4 +119,22 @@ export function deleteServer(id: string): void {
   db.prepare(`DELETE FROM status_history WHERE server_id = ?`).run(id);
   db.prepare(`DELETE FROM server_status WHERE id = ?`).run(id);
   db.prepare(`DELETE FROM servers WHERE id = ?`).run(id);
+}
+
+export type StatusRow = {
+  id: string;
+  online: number;
+  players: number | null;
+};
+
+export function getAllServerStatuses(): Map<string, StatusRow> {
+  const db = getDb();
+  const rows = db
+    .prepare('SELECT id, online, players FROM server_status')
+    .all() as StatusRow[];
+  const map = new Map<string, StatusRow>();
+  for (const row of rows) {
+    map.set(row.id, row);
+  }
+  return map;
 }

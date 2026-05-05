@@ -5,6 +5,7 @@ import { sessionOptions, type SessionData } from '../../../../../lib/auth/sessio
 import { isAdmin } from '../../../../../lib/auth/roles';
 import { getById, updateServer, deleteServer, setHidden } from '../../../../../lib/repos/servers';
 import { getGameById } from '../../../../../lib/repos/games';
+import { jsonNoStore } from '../../../../../lib/api-helpers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,18 +20,18 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PUT(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!admin) return jsonNoStore({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await ctx.params;
   const server = getById(id);
-  if (!server) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  if (!server) return jsonNoStore({ error: 'not found' }, { status: 404 });
 
   let body: unknown;
   try { body = await req.json(); }
-  catch { return NextResponse.json({ error: 'invalid json' }, { status: 400 }); }
+  catch { return jsonNoStore({ error: 'invalid json' }, { status: 400 }); }
 
   if (typeof body !== 'object' || body === null) {
-    return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+    return jsonNoStore({ error: 'invalid body' }, { status: 400 });
   }
 
   const { name, host, port, game_id } = body as Record<string, unknown>;
@@ -38,68 +39,68 @@ export async function PUT(req: NextRequest, ctx: RouteContext): Promise<NextResp
 
   if (name !== undefined) {
     if (typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ error: 'name must be non-empty string' }, { status: 400 });
+      return jsonNoStore({ error: 'name must be non-empty string' }, { status: 400 });
     }
     patch.name = name.trim();
   }
   if (host !== undefined) {
     if (typeof host !== 'string' || !host.trim()) {
-      return NextResponse.json({ error: 'host must be non-empty string' }, { status: 400 });
+      return jsonNoStore({ error: 'host must be non-empty string' }, { status: 400 });
     }
     patch.host = host.trim();
   }
   if (port !== undefined) {
     const portNum = Number(port);
     if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
-      return NextResponse.json({ error: 'invalid port' }, { status: 400 });
+      return jsonNoStore({ error: 'invalid port' }, { status: 400 });
     }
     patch.port = portNum;
   }
   if (game_id !== undefined) {
     if (typeof game_id !== 'string' || !game_id.trim()) {
-      return NextResponse.json({ error: 'game_id must be non-empty string' }, { status: 400 });
+      return jsonNoStore({ error: 'game_id must be non-empty string' }, { status: 400 });
     }
     if (!getGameById(game_id)) {
-      return NextResponse.json({ error: 'game not found' }, { status: 422 });
+      return jsonNoStore({ error: 'game not found' }, { status: 422 });
     }
     patch.game_id = game_id;
   }
 
   updateServer(id, patch);
-  return NextResponse.json({ ok: true });
+  return jsonNoStore({ ok: true });
 }
 
 export async function DELETE(_req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!admin) return jsonNoStore({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await ctx.params;
-  if (!getById(id)) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  if (!getById(id)) return jsonNoStore({ error: 'not found' }, { status: 404 });
 
   deleteServer(id);
-  return NextResponse.json({ ok: true });
+  return jsonNoStore({ ok: true });
 }
 
 export async function PATCH(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!admin) return jsonNoStore({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await ctx.params;
-  if (!getById(id)) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  if (!getById(id)) return jsonNoStore({ error: 'not found' }, { status: 404 });
 
   let body: unknown;
   try { body = await req.json(); }
-  catch { return NextResponse.json({ error: 'invalid json' }, { status: 400 }); }
+  catch { return jsonNoStore({ error: 'invalid json' }, { status: 400 }); }
 
   if (typeof body !== 'object' || body === null) {
-    return NextResponse.json({ error: 'invalid body' }, { status: 400 });
+    return jsonNoStore({ error: 'invalid body' }, { status: 400 });
   }
 
   const { hidden } = body as Record<string, unknown>;
   if (typeof hidden !== 'boolean') {
-    return NextResponse.json({ error: 'hidden must be boolean' }, { status: 400 });
+    return jsonNoStore({ error: 'hidden must be boolean' }, { status: 400 });
   }
 
   setHidden(id, hidden);
-  return NextResponse.json({ ok: true });
+  return jsonNoStore({ ok: true });
 }

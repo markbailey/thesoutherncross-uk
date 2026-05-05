@@ -38,7 +38,7 @@ export function GET(): Response {
 
     const serversByGame = db
       .prepare(
-        `SELECT id, name, host, port, game_id FROM servers WHERE hidden = 0 AND game_id IS NOT NULL`,
+        `SELECT id, name, host, port, game_id FROM servers WHERE hidden = 0 AND game_id IS NOT NULL ORDER BY id ASC`,
       )
       .all() as { id: string; name: string; host: string; port: number; game_id: string }[];
 

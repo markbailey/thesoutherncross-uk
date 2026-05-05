@@ -94,3 +94,15 @@ export function deleteGame(id: string): void {
   if (refs.n > 0) throw new Error(`Game "${id}" has servers — reassign or delete them first`);
   db.prepare(`DELETE FROM games WHERE id = ?`).run(id);
 }
+
+export function getAllGameServerCounts(): Map<string, number> {
+  const db = getDb();
+  const rows = db
+    .prepare('SELECT game_id, COUNT(*) AS n FROM servers WHERE game_id IS NOT NULL GROUP BY game_id')
+    .all() as { game_id: string; n: number }[];
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    map.set(row.game_id, row.n);
+  }
+  return map;
+}

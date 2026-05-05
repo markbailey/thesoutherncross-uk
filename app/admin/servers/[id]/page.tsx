@@ -31,6 +31,7 @@ export default function EditServerPage({ params }: PageProps) {
     fetch(`/api/admin/servers/${id}/data`)
       .then((r) => {
         if (r.status === 404) { setNotFound(true); setLoading(false); return null; }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
       .then((data) => {
@@ -39,7 +40,10 @@ export default function EditServerPage({ params }: PageProps) {
           setLoading(false);
         }
       })
-      .catch(() => { setError('Failed to load server'); setLoading(false); });
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to load server');
+        setLoading(false);
+      });
 
     fetch('/api/admin/games')
       .then((r) => r.json())

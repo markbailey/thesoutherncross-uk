@@ -11,7 +11,7 @@ export function isAdmin(steamid: string | undefined): boolean {
 
 export function isMember(steamid: string): boolean {
   const stale = getMetaFlag('members.stale');
-  if (stale) return true; // skip DB check if cache is stale to avoid false-rejects
+  if (stale) return false; // fail closed when cache is stale — do not grant access on uncertainty
   const db = getDb();
   const row = db.prepare('SELECT 1 FROM members WHERE steamid = ?').get(steamid);
   return row !== undefined;
