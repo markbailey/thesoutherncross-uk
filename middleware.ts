@@ -3,7 +3,7 @@ import { getIronSession } from 'iron-session';
 import { sessionOptions, type SessionData } from './lib/auth/session';
 import { isAdmin } from './lib/auth/admin-check';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   const session = await getIronSession<SessionData>(request, response, sessionOptions);
 

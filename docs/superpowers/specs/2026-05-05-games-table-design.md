@@ -35,8 +35,8 @@ CREATE TABLE games (
 
 ### Updated: `servers` table
 
-- Add `game_id TEXT NOT NULL REFERENCES games(id)`
-- Remove `protocol` column
+- Add `game_id TEXT REFERENCES games(id)` (nullable; servers without a game assignment are excluded from public queries)
+- Keep `protocol TEXT NOT NULL DEFAULT ''` (deprecated; kept for backward compatibility, defaults to empty string)
 
 Migration on dev branch: drop and recreate (no production data to preserve).
 

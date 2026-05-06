@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { use } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 
 type ServerData = {
   id: string;
@@ -13,10 +12,8 @@ type ServerData = {
   hidden: boolean;
 };
 
-type PageProps = { params: Promise<{ id: string }> };
-
-export default function EditServerPage({ params }: PageProps) {
-  const { id } = use(params);
+export default function EditServerPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
   const [server, setServer] = useState<ServerData | null>(null);

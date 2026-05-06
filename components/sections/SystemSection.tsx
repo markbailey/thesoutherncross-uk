@@ -52,7 +52,6 @@ const fetcher = async (url: string): Promise<ApiResponse> => {
 // (game/server names, planet visuals, server status/players/map/ping) and
 // ignores only `updatedAt` (top-level + per-server) since it's not rendered —
 // diffing it would trigger spurious re-renders every poll without affecting UI.
-// Handles both demo mode ({ games }) and live DB mode ({ servers }).
 function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;

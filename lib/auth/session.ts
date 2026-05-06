@@ -11,6 +11,9 @@ const SESSION_SECRET = process.env['SESSION_SECRET'];
 if (!SESSION_SECRET) {
   throw new Error('SESSION_SECRET environment variable is required');
 }
+if (SESSION_SECRET.length < 32) {
+  throw new Error('SESSION_SECRET must be at least 32 characters');
+}
 
 export const sessionOptions: SessionOptions = {
   password: SESSION_SECRET,
