@@ -18,7 +18,9 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext): Promise<Next
   try {
     deleteGame(id);
     return jsonNoStore({ ok: true });
-  } catch {
-    return jsonNoStore({ error: 'Cannot delete game: it still has servers assigned' }, { status: 422 });
+  } catch (e) {
+    if (e instanceof Error && e.message.includes('has servers'))
+      return jsonNoStore({ error: 'Cannot delete game: it still has servers assigned' }, { status: 422 });
+    throw e;
   }
 }

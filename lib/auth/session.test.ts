@@ -3,6 +3,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 describe('session module', () => {
   afterEach(() => {
     vi.resetModules();
+    vi.unstubAllEnvs();
   });
 
   it('throws when SESSION_SECRET is missing', async () => {
