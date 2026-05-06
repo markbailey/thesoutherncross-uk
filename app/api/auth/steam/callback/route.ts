@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     if (!isMember(steamid)) {
       const deniedResponse = NextResponse.redirect(new URL('/?login=denied', siteBase));
       const session = await getIronSession<SessionData>(request, deniedResponse, sessionOptions);
-      session.destroy();
+      await session.destroy();
       return deniedResponse;
     }
 

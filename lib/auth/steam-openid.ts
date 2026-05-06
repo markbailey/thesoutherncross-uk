@@ -4,13 +4,13 @@ import openid from 'openid';
 
 type RelyingParty = InstanceType<typeof openid.RelyingParty>;
 
-function getRelyingParty(returnTo: string): RelyingParty {
+function getRelyingParty(callbackUrl: string): RelyingParty {
   const siteBaseUrl = process.env['SITE_BASE_URL'] ?? 'http://localhost:3000';
-  return new openid.RelyingParty(returnTo, siteBaseUrl, true, true, []);
+  return new openid.RelyingParty(callbackUrl, siteBaseUrl, true, true, []);
 }
 
-export async function buildLoginUrl(returnTo: string): Promise<string> {
-  const rp = getRelyingParty(returnTo);
+export async function buildLoginUrl(callbackUrl: string): Promise<string> {
+  const rp = getRelyingParty(callbackUrl);
   return new Promise((resolve, reject) => {
     rp.authenticate(
       'https://steamcommunity.com/openid',
@@ -25,11 +25,11 @@ export async function buildLoginUrl(returnTo: string): Promise<string> {
 
 type AssertionResult = { authenticated: boolean; claimedIdentifier?: string };
 
-export async function verifyAssertion(callbackUrl: string, returnTo: string): Promise<string> {
-  const rp = getRelyingParty(returnTo);
+export async function verifyAssertion(requestUrl: string, callbackUrl: string): Promise<string> {
+  const rp = getRelyingParty(callbackUrl);
   return new Promise((resolve, reject) => {
     rp.verifyAssertion(
-      callbackUrl,
+      requestUrl,
       (err: Error | null, result: AssertionResult | null | undefined) => {
         if (err) return reject(err);
         if (!result?.authenticated || !result.claimedIdentifier) {
