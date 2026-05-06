@@ -78,9 +78,11 @@ export function createServer(input: {
   return withTransaction(() => {
     const id = generateId(input.name);
     const now = Date.now();
+    // protocol is omitted — the column defaults to '' and the real value is
+    // read from the joined games table (g.protocol) in list queries.
     getDb().prepare(
-      `INSERT INTO servers (id, name, host, port, protocol, game_id, hidden, created_at, updated_at)
-       VALUES (?, ?, ?, ?, '', ?, 0, ?, ?)`
+      `INSERT INTO servers (id, name, host, port, game_id, hidden, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 0, ?, ?)`
     ).run(id, input.name, input.host, input.port, input.game_id, now, now);
     return id;
   });

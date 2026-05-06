@@ -49,8 +49,15 @@ export default function EditServerPage({ params }: PageProps) {
       });
 
     fetch('/api/admin/games')
-      .then((r) => r.json())
-      .then((d) => setGames((d as { games: { id: string; name: string }[] }).games ?? []));
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => setGames((d as { games: { id: string; name: string }[] }).games ?? []))
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to load games');
+        setLoading(false);
+      });
   }, [id]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
