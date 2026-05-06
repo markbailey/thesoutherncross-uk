@@ -77,6 +77,7 @@ export function getGameById(id: string): GameRow | undefined {
 export function createGame(input: { name: string; protocol: Protocol }): string {
   return withTransaction(() => {
     const id = generateId(input.name);
+    if (!id) throw new Error(`Game name "${input.name}" generates an empty ID`);
     const orbitIndex = nextOrbitIndex();
     const now = Date.now();
     getDb().prepare(

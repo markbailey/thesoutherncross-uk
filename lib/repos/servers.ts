@@ -77,6 +77,7 @@ export function createServer(input: {
 }): string {
   return withTransaction(() => {
     const id = generateId(input.name);
+    if (!id) throw new Error(`Server name "${input.name}" generates an empty ID`);
     const now = Date.now();
     // protocol is omitted — the column defaults to '' and the real value is
     // read from the joined games table (g.protocol) in list queries.

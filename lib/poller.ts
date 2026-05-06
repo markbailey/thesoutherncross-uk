@@ -141,7 +141,9 @@ export function createPoller(options: PollerOptions): Poller {
       // options.games is an escape hatch for tests; production reads from the DB.
       const servers: ServerConfig[] = options.games
         ? gamesList.flatMap((g) => g.servers.filter((s) => !s.hidden))
-        : (listEnabled() as unknown as ServerConfig[]);
+        : listEnabled()
+            .filter((r) => r.protocol !== null)
+            .map((r) => ({ id: r.id, name: r.name, host: r.host, port: r.port, protocol: r.protocol! }));
 
       for (const server of servers) {
         try {
