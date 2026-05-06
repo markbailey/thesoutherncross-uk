@@ -82,6 +82,8 @@ function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined)
       if (
         s1.id !== s2.id ||
         s1.name !== s2.name ||
+        s1.host !== s2.host ||
+        s1.port !== s2.port ||
         s1.online !== s2.online ||
         s1.players !== s2.players ||
         s1.maxPlayers !== s2.maxPlayers ||

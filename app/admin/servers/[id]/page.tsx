@@ -21,6 +21,7 @@ export default function EditServerPage({ params }: PageProps) {
 
   const [server, setServer] = useState<ServerData | null>(null);
   const [games, setGames] = useState<{ id: string; name: string }[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -36,7 +37,9 @@ export default function EditServerPage({ params }: PageProps) {
       })
       .then((data) => {
         if (data) {
-          setServer(data as ServerData);
+          const s = data as ServerData;
+          setServer(s);
+          setSelectedGameId(s.game_id ?? '');
           setLoading(false);
         }
       })
@@ -250,7 +253,8 @@ export default function EditServerPage({ params }: PageProps) {
               <select
                 id="game_id"
                 name="game_id"
-                defaultValue={server.game_id ?? ''}
+                value={selectedGameId}
+                onChange={(e) => setSelectedGameId(e.target.value)}
                 required
                 style={{
                   fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.08em',

@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
     const steamid = await verifyAssertion(request.url, cbBase);
 
     if (!isMember(steamid)) {
-      return NextResponse.redirect(new URL('/?login=denied', siteBase));
+      const deniedResponse = NextResponse.redirect(new URL('/?login=denied', siteBase));
+      const session = await getIronSession<SessionData>(request, deniedResponse, sessionOptions);
+      session.destroy();
+      return deniedResponse;
     }
 
     const db = (await import('../../../../../lib/db')).getDb();

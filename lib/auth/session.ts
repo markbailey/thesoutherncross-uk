@@ -8,13 +8,12 @@ export type SessionData = {
 };
 
 const SESSION_SECRET = process.env['SESSION_SECRET'];
-const isDemoMode = process.env['DEMO_SERVERS'] === '1';
-if (!SESSION_SECRET && !isDemoMode) {
+if (!SESSION_SECRET) {
   throw new Error('SESSION_SECRET environment variable is required');
 }
 
 export const sessionOptions: SessionOptions = {
-  password: SESSION_SECRET ?? 'dev-placeholder-secret-not-for-production',
+  password: SESSION_SECRET,
   cookieName: 'tsx-session',
   cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
