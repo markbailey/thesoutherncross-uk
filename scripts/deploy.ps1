@@ -5,7 +5,7 @@
 #   2. Stops the Windows service
 #   3. Renames the current site root to wwwroot-prev-<ts> (rollback target)
 #   4. Moves staging into place as the new site root
-#   5. Restores .env and data\ from the snapshot
+#   5. Restores .env, web.config, and data\ from snapshot; validates required env keys
 #   6. Runs `npm ci --include=dev` and `npm run build`
 #   7. Runs install-service.ps1 (idempotent: registers or refreshes env)
 #   8. Starts the service and polls /api/health for up to 60s
@@ -147,13 +147,18 @@ function Invoke-Rollback {
         Note "Rollback requested but no snapshot exists (first-time deploy)"
         return
     }
-    Step "Rolling back to $prevLeaf"
-    & $NssmPath stop $ServiceName 2>&1 | Out-Null
-    Start-Sleep -Seconds 2
-    if (Test-Path $SiteRoot) { Remove-Item -Recurse -Force $SiteRoot -ErrorAction SilentlyContinue }
-    Rename-Item -LiteralPath $prev -NewName $leaf
-    & $NssmPath start $ServiceName 2>&1 | Out-Null
-    Note "Rolled back. Site restored to $SiteRoot. Investigate before retry (use -SkipRollback to suppress auto-rollback)."
+    # Wrap so a rollback failure doesn't propagate and mask the original error.
+    try {
+        Step "Rolling back to $prevLeaf"
+        & $NssmPath stop $ServiceName 2>&1 | Out-Null
+        Start-Sleep -Seconds 2
+        if (Test-Path $SiteRoot) { Remove-Item -Recurse -Force $SiteRoot -ErrorAction SilentlyContinue }
+        Rename-Item -LiteralPath $prev -NewName $leaf
+        & $NssmPath start $ServiceName 2>&1 | Out-Null
+        Note "Rolled back. Site restored to $SiteRoot. Investigate before retry (use -SkipRollback to suppress auto-rollback)."
+    } catch {
+        Note "Rollback failed: $_. Snapshot remains at $prev - restore manually."
+    }
 }
 
 # --- swap staging -> SiteRoot (rollback on failure) ------------------------
@@ -165,6 +170,7 @@ try {
     New-Item -ItemType Directory -Force -Path (Join-Path $SiteRoot 'logs') | Out-Null
     # Reset ACL inheritance from parent so IIS can serve the new wwwroot.
     & icacls $SiteRoot /reset /t /c /q | Out-Null
+    if ($LASTEXITCODE -ne 0) { Die "icacls ACL reset failed (exit $LASTEXITCODE)" }
 } catch {
     if (-not $SkipRollback) { Invoke-Rollback }
     Die "Failed to install bundle to ${SiteRoot}: $_"
@@ -303,8 +309,9 @@ Pop-Location
 Write-Host ''
 Write-Host "Deploy complete." -ForegroundColor Green
 if ($snapshotted) {
+    $retention = if ($PruneOlderThanDays -eq 0) { 'indefinitely (auto-prune disabled)' } else { "for $PruneOlderThanDays day(s)" }
     Write-Host "  Snapshot:  $prev" -ForegroundColor Green
-    Write-Host "  (kept for $PruneOlderThanDays day(s); delete sooner once verified stable)" -ForegroundColor Green
+    Write-Host "  (kept $retention; delete sooner once verified stable)" -ForegroundColor Green
 } else {
     Write-Host "  Snapshot:  (none - first-time deploy)" -ForegroundColor Green
 }

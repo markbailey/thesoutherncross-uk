@@ -105,8 +105,10 @@ Each step prints a `==> ...` banner; sub-results print indented in green
 
 ## Auto-rollback
 
-Any failure after the snapshot is taken (npm ci, build, install-service, smoke
-test) triggers rollback unless `-SkipRollback` is passed:
+Any failure after the snapshot is taken triggers rollback unless `-SkipRollback`
+is passed. Triggers: bundle swap/install (Move-Item, logs dir creation, ACL
+reset), file restore (.env, web.config, data\), required env key validation,
+npm ci, npm run build, install-service.ps1 failure, and smoke test timeout.
 
 1. `nssm stop TheSouthernCrossUK`
 2. Delete the broken new `wwwroot`.

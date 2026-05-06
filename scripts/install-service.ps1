@@ -59,13 +59,17 @@ if (-not (Test-Path $siteRoot)) { throw "Site root $siteRoot does not exist. Cre
 # Logs dir must exist before nssm starts writing to it.
 New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
 
-# --- Idempotency: if service exists, update env from .env and exit ---------
-# nssm AppEnvironmentExtra is registry-stored at install time and does NOT
-# auto-reload from .env. To rotate secrets we re-set it, then restart.
+# --- Idempotency: if service exists, refresh definition + env and restart ---
+# nssm registry values (Application, AppDirectory, AppParameters,
+# AppEnvironmentExtra) do NOT auto-update; we must re-set them so that
+# changes to -NodeExe, -SiteRoot, or .env take effect on re-runs.
 $existing = Get-Service -Name $svc -ErrorAction SilentlyContinue
 if ($existing) {
     "Service '$svc' already exists (status: $($existing.Status))."
-    "Refreshing AppEnvironmentExtra from $envFile and restarting..."
+    "Refreshing service definition and env from $envFile..."
+    & $nssm set $svc Application    $appExe
+    & $nssm set $svc AppParameters  $appArgs
+    & $nssm set $svc AppDirectory   $siteRoot
     $refresh = @('NODE_ENV=production','PORT=3000','TRUST_PROXY_HEADERS=1')
     if (Test-Path $envFile) {
         Get-Content $envFile | ForEach-Object {
