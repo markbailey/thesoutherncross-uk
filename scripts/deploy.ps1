@@ -258,7 +258,8 @@ if (-not (Test-Path $installScript)) {
 }
 
 Step "install-service.ps1 (registers service or refreshes env from .env)"
-& PowerShell -ExecutionPolicy Bypass -File $installScript `
+$psExe = (Get-Process -Id $PID).MainModule.FileName
+& $psExe -ExecutionPolicy Bypass -File $installScript `
     -ServiceName $ServiceName `
     -SiteRoot    $SiteRoot `
     -NssmPath    $NssmPath `

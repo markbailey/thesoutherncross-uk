@@ -70,6 +70,8 @@ if ($existing) {
     & $nssm set $svc Application    $appExe
     & $nssm set $svc AppParameters  $appArgs
     & $nssm set $svc AppDirectory   $siteRoot
+    & $nssm set $svc AppStdout      (Join-Path $logsDir 'nssm.out.log')
+    & $nssm set $svc AppStderr      (Join-Path $logsDir 'nssm.err.log')
     $refresh = @('NODE_ENV=production','PORT=3000','TRUST_PROXY_HEADERS=1')
     if (Test-Path $envFile) {
         Get-Content $envFile | ForEach-Object {
