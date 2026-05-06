@@ -3,7 +3,8 @@
 # Run from an admin PowerShell on the remote IIS box:
 #   PowerShell -ExecutionPolicy Bypass -File .\install-service.ps1
 #
-# Idempotent: if the service already exists, prints a message and exits 0.
+# Idempotent: if the service already exists, refreshes the service definition
+# and environment from .env, restarts the service, then exits 0.
 # To re-create from scratch, run `nssm remove TheSouthernCrossUK confirm`
 # then re-run this script.
 #
@@ -37,6 +38,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Invoke-Nssm {
+    & $nssm @args
+    if ($LASTEXITCODE -ne 0) { throw "nssm $args failed (exit $LASTEXITCODE)" }
+}
+
 # --- Resolve parameters to local names used throughout ----------------------
 $svc      = $ServiceName
 $siteRoot = $SiteRoot
@@ -67,11 +73,11 @@ $existing = Get-Service -Name $svc -ErrorAction SilentlyContinue
 if ($existing) {
     "Service '$svc' already exists (status: $($existing.Status))."
     "Refreshing service definition and env from $envFile..."
-    & $nssm set $svc Application    $appExe
-    & $nssm set $svc AppParameters  $appArgs
-    & $nssm set $svc AppDirectory   $siteRoot
-    & $nssm set $svc AppStdout      (Join-Path $logsDir 'nssm.out.log')
-    & $nssm set $svc AppStderr      (Join-Path $logsDir 'nssm.err.log')
+    Invoke-Nssm set $svc Application    $appExe
+    Invoke-Nssm set $svc AppParameters  $appArgs
+    Invoke-Nssm set $svc AppDirectory   $siteRoot
+    Invoke-Nssm set $svc AppStdout      (Join-Path $logsDir 'nssm.out.log')
+    Invoke-Nssm set $svc AppStderr      (Join-Path $logsDir 'nssm.err.log')
     $refresh = @('NODE_ENV=production','PORT=3000','TRUST_PROXY_HEADERS=1')
     if (Test-Path $envFile) {
         Get-Content $envFile | ForEach-Object {
@@ -83,8 +89,8 @@ if ($existing) {
     } else {
         Write-Warning ".env not found at $envFile - only NODE_ENV/PORT/TRUST_PROXY_HEADERS will be set."
     }
-    & $nssm set $svc AppEnvironmentExtra ($refresh -join "`n")
-    & $nssm restart $svc
+    Invoke-Nssm set $svc AppEnvironmentExtra ($refresh -join "`n")
+    Invoke-Nssm restart $svc
     "Done. To re-create from scratch: nssm stop $svc; nssm remove $svc confirm; re-run this script."
     exit 0
 }

@@ -82,6 +82,7 @@ $staging   = Join-Path $env:TEMP "thesoutherncross-staging-$ts"
 # Move cwd outside $SiteRoot so the rename can succeed even when invoked from
 # inside wwwroot or wwwroot\scripts.
 Push-Location $env:TEMP
+try {
 
 Step "Deploy starting at $ts"
 Write-Host "    Bundle:    $ZipPath"
@@ -106,6 +107,7 @@ $serviceExists = Test-ServiceExists $ServiceName
 if ($serviceExists) {
     Step "Stopping $ServiceName"
     & $NssmPath stop $ServiceName 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { Die "nssm stop $ServiceName failed (exit $LASTEXITCODE)" }
     Start-Sleep -Seconds 2
 } else {
     Note "$ServiceName not installed - treating as first-time deploy"
@@ -273,6 +275,10 @@ if ($LASTEXITCODE -ne 0) {
 # but leaves it stopped on first install. Start it unconditionally.
 Step "Starting $ServiceName"
 & $NssmPath start $ServiceName 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    if (-not $SkipRollback) { Invoke-Rollback }
+    Die "nssm start $ServiceName failed (exit $LASTEXITCODE)"
+}
 
 # --- smoke test (poll up to 60s) -------------------------------------------
 
@@ -305,8 +311,6 @@ if ($PruneOlderThanDays -gt 0) {
     }
 }
 
-Pop-Location
-
 Write-Host ''
 Write-Host "Deploy complete." -ForegroundColor Green
 if ($snapshotted) {
@@ -316,3 +320,5 @@ if ($snapshotted) {
 } else {
     Write-Host "  Snapshot:  (none - first-time deploy)" -ForegroundColor Green
 }
+
+} finally { Pop-Location }
