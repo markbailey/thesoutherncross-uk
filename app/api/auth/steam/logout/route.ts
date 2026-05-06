@@ -9,6 +9,6 @@ export async function GET(request: NextRequest) {
     new URL('/', process.env['SITE_BASE_URL'] ?? 'http://localhost:3000'),
   );
   const session = await getIronSession<SessionData>(request, response, sessionOptions);
-  session.destroy();
+  await session.destroy();
   return response;
 }

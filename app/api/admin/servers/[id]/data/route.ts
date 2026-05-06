@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { cookies } from 'next/headers';
-import { sessionOptions, type SessionData } from '../../../../../../lib/auth/session';
-import { isAdmin } from '../../../../../../lib/auth/roles';
+import { requireAdmin } from '../../../../../../lib/auth/require-admin';
 import { getById } from '../../../../../../lib/repos/servers';
 import { jsonNoStore } from '../../../../../../lib/api-helpers';
 
@@ -12,10 +9,8 @@ export const dynamic = 'force-dynamic';
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
-  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  if (!session.steamid || !isAdmin(session.steamid)) {
-    return jsonNoStore({ error: 'forbidden' }, { status: 403 });
-  }
+  const admin = await requireAdmin();
+  if (!admin) return jsonNoStore({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await ctx.params;
   const server = getById(id);
