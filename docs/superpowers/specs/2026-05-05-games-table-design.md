@@ -46,7 +46,7 @@ Migration on dev branch: drop and recreate (no production data to preserve).
 color       = hsl(hash(game.id) % 360, 70%, 60%)
 size        = 0.85 + (orbit_index % 4) * 0.05
 orbitRadius = 8 + orbit_index * 3
-orbitSpeed  = 0.05 * 0.8^orbit_index            // outer orbits slower
+orbitSpeed  = toFixed(4, 0.05 * 0.8^orbit_index) // outer orbits slower; rounded to 4 d.p.
 ```
 
 Moon (server) colour: fixed `#8a8fa8` (gray), applied in the Scene component.
