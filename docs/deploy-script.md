@@ -16,11 +16,9 @@ On the target box:
 - Windows + PowerShell 5+ (or 7+)
 - `C:\Windows\System32\tar.exe` (bsdtar — ships with Windows 10/11 + Server 2019+)
 - `C:\nssm\nssm.exe` (override with `-NssmPath`)
-- Node 20+ installed at `C:\Program Files\nodejs\` (the default Windows
-  installer path — `scripts\install-service.ps1` hardcodes
-  `C:\Program Files\nodejs\node.exe` for the service executable; custom
-  install directories such as nvm will pass `npm ci`/`npm run build` but
-  cause the service registration step to fail)
+- Node 20+ on PATH (for `npm ci` / `npm run build`). The Windows service
+  defaults to `C:\Program Files\nodejs\node.exe`; pass `-NodeExe` to
+  override (e.g. for nvm or custom install paths).
 - Service `TheSouthernCrossUK` already registered (or accept that the script
   registers it on first run via `scripts\install-service.ps1`)
 
@@ -74,6 +72,7 @@ Use the loopback `HealthUrl` until TLS is in place
 | `-ServiceName`        | `TheSouthernCrossUK`                          | nssm-managed Windows service. |
 | `-HealthUrl`          | `https://thesoutherncross.uk/api/health`      | Smoke-test target; expects 200 + `"ok":true`. |
 | `-NssmPath`           | `C:\nssm\nssm.exe`                            | Override if installed elsewhere. |
+| `-NodeExe`            | `C:\Program Files\nodejs\node.exe`            | Node executable for the Windows service. Override for nvm or custom install paths. |
 | `-SkipRollback`       | _off_                                         | Leave broken install in place for forensics. |
 | `-PruneOlderThanDays` | `7`                                           | Delete `wwwroot-prev-*` older than N days. `0` keeps all. |
 
@@ -88,8 +87,9 @@ Use the loopback `HealthUrl` until TLS is in place
    under `node_modules\`).
 5. Renames `C:\inetpub\wwwroot` → `C:\inetpub\wwwroot-prev-<ts>` (rollback target).
 6. Moves staging into place as the new `wwwroot`.
-7. Restores `.env` and `data\` from the snapshot. Prints a warning if either
-   is missing (first-time deploy).
+7. Restores `.env`, `web.config`, and `data\` from the snapshot. Validates
+   that required env keys (`REFRESH_SECRET`, `STEAM_API_KEY`, `STEAM_GROUP_ID`)
+   are present in `.env` — pauses for operator input if any are missing.
 8. `npm ci --include=dev` then `npm run build` inside the new `wwwroot`.
 9. Runs `scripts\install-service.ps1`. Idempotent: registers the service on
    first run, refreshes `AppEnvironmentExtra` from `.env` and restarts on

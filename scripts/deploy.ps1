@@ -37,6 +37,7 @@ param(
     [string] $ServiceName        = 'TheSouthernCrossUK',
     [string] $HealthUrl          = 'https://thesoutherncross.uk/api/health',
     [string] $NssmPath           = 'C:\nssm\nssm.exe',
+    [string] $NodeExe            = 'C:\Program Files\nodejs\node.exe',
     [switch] $SkipRollback,
     [int]    $PruneOlderThanDays = 7
 )
@@ -114,8 +115,6 @@ if ($serviceExists) {
 # taking down unrelated Node services on a shared host.
 $lingering = Get-Process node, tsx -ErrorAction SilentlyContinue |
     Where-Object {
-        try { $_.MainModule.FileName -or $true } catch { $true }
-        # Filter by working directory reported via WMI to stay scoped.
         $wmi = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue
         $wmi -and $wmi.ExecutablePath -and
             ($wmi.CommandLine -like "*$SiteRoot*" -or
@@ -132,8 +131,13 @@ if ($lingering) {
 $snapshotted = $false
 if (Test-Path $SiteRoot) {
     Step "Snapshotting $SiteRoot -> $prevLeaf"
-    Rename-Item -LiteralPath $SiteRoot -NewName $prevLeaf
-    $snapshotted = $true
+    try {
+        Rename-Item -LiteralPath $SiteRoot -NewName $prevLeaf
+        $snapshotted = $true
+    } catch {
+        if ($serviceExists) { & $NssmPath start $ServiceName 2>&1 | Out-Null }
+        Die "Failed to snapshot ${SiteRoot}: $_"
+    }
 }
 
 # --- rollback (closes over $prev, $SiteRoot, etc.) -------------------------
@@ -159,6 +163,8 @@ $requiredEnvKeys = @('REFRESH_SECRET', 'STEAM_API_KEY', 'STEAM_GROUP_ID')
 try {
     Move-Item -LiteralPath $staging -Destination $SiteRoot
     New-Item -ItemType Directory -Force -Path (Join-Path $SiteRoot 'logs') | Out-Null
+    # Reset ACL inheritance from parent so IIS can serve the new wwwroot.
+    & icacls $SiteRoot /reset /t /c /q | Out-Null
 } catch {
     if (-not $SkipRollback) { Invoke-Rollback }
     Die "Failed to install bundle to ${SiteRoot}: $_"
@@ -189,30 +195,29 @@ try {
             Copy-Item $dataSrc $SiteRoot -Recurse -Force
             Ok "data\ restored from snapshot"
         }
-    } else {
-        # First-time deploy: validate required env vars exist before proceeding.
-        Note "First-time deploy: $SiteRoot\.env must be populated with prod values."
-        $envFile = Join-Path $SiteRoot '.env'
-        $missingKeys = @()
-        if (Test-Path $envFile) {
-            $envContent = Get-Content $envFile -Raw
-            foreach ($key in $requiredEnvKeys) {
-                if ($envContent -notmatch "(?m)^$key=.+") { $missingKeys += $key }
-            }
-        } else {
-            $missingKeys = $requiredEnvKeys
+    }
+
+    # Validate required env keys on every deploy so missing credentials are
+    # caught before the build — /api/health does not check Steam/refresh keys.
+    $envFile = Join-Path $SiteRoot '.env'
+    $missingKeys = @()
+    if (Test-Path $envFile) {
+        $envContent = Get-Content $envFile -Raw
+        foreach ($key in $requiredEnvKeys) {
+            if ($envContent -notmatch "(?m)^$key=.+") { $missingKeys += $key }
         }
-        if ($missingKeys.Count -gt 0) {
-            Note "Missing required env keys: $($missingKeys -join ', ')"
-            Note "Edit $envFile and set these values, then press Enter to continue (or Ctrl+C to abort)."
-            Read-Host "Press Enter once .env is ready"
-            # Re-check after operator edit.
-            $envContent = if (Test-Path $envFile) { Get-Content $envFile -Raw } else { '' }
-            $stillMissing = $missingKeys | Where-Object { $envContent -notmatch "(?m)^$_=.+" }
-            if ($stillMissing.Count -gt 0) {
-                if (-not $SkipRollback) { Invoke-Rollback }
-                Die "Required env keys still missing after edit: $($stillMissing -join ', ')"
-            }
+    } else {
+        $missingKeys = $requiredEnvKeys
+    }
+    if ($missingKeys.Count -gt 0) {
+        Note "Missing required env keys: $($missingKeys -join ', ')"
+        Note "Edit $envFile and set these values, then press Enter to continue (or Ctrl+C to abort)."
+        Read-Host "Press Enter once .env is ready"
+        $envContent = if (Test-Path $envFile) { Get-Content $envFile -Raw } else { '' }
+        $stillMissing = $missingKeys | Where-Object { $envContent -notmatch "(?m)^$_=.+" }
+        if ($stillMissing.Count -gt 0) {
+            if (-not $SkipRollback) { Invoke-Rollback }
+            Die "Required env keys still missing after edit: $($stillMissing -join ', ')"
         }
     }
 } catch {
@@ -250,7 +255,8 @@ Step "install-service.ps1 (registers service or refreshes env from .env)"
 & PowerShell -ExecutionPolicy Bypass -File $installScript `
     -ServiceName $ServiceName `
     -SiteRoot    $SiteRoot `
-    -NssmPath    $NssmPath
+    -NssmPath    $NssmPath `
+    -NodeExe     $NodeExe
 if ($LASTEXITCODE -ne 0) {
     if (-not $SkipRollback) { Invoke-Rollback }
     Die "install-service.ps1 failed (exit $LASTEXITCODE)"
