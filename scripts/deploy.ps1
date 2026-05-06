@@ -57,7 +57,7 @@ function Test-ServiceExists([string] $name) {
 
 function Test-Health([string] $url) {
     try {
-        $r = Invoke-WebRequest $url -UseBasicParsing -TimeoutSec 10
+        $r = Invoke-WebRequest $url -TimeoutSec 10
         if ($r.StatusCode -ne 200) { return $false }
         return [bool] ($r.Content | ConvertFrom-Json).ok
     } catch { return $false }
@@ -111,8 +111,8 @@ if ($serviceExists) {
     Note "$ServiceName not installed - treating as first-time deploy"
 }
 
-# Scope kill to processes whose working directory is $SiteRoot to avoid
-# taking down unrelated Node services on a shared host.
+# Scope kill to processes whose command line or executable path references
+# $SiteRoot to avoid taking down unrelated Node services on a shared host.
 $lingering = Get-Process node, tsx -ErrorAction SilentlyContinue |
     Where-Object {
         $wmi = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue
@@ -302,5 +302,9 @@ Pop-Location
 
 Write-Host ''
 Write-Host "Deploy complete." -ForegroundColor Green
-Write-Host "  Snapshot:  $prev" -ForegroundColor Green
-Write-Host "  (kept for $PruneOlderThanDays day(s); delete sooner once verified stable)" -ForegroundColor Green
+if ($snapshotted) {
+    Write-Host "  Snapshot:  $prev" -ForegroundColor Green
+    Write-Host "  (kept for $PruneOlderThanDays day(s); delete sooner once verified stable)" -ForegroundColor Green
+} else {
+    Write-Host "  Snapshot:  (none - first-time deploy)" -ForegroundColor Green
+}
