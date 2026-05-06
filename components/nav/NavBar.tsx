@@ -230,14 +230,18 @@ function NavBarInner({ session }: NavBarProps) {
               </a>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={session.avatar}
-                alt={session.persona}
-                width={24}
-                height={24}
-                style={{ borderRadius: 2, border: '1px solid var(--hair)' }}
-              />
+              {session.avatar && (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={session.avatar}
+                    alt={session.persona}
+                    width={24}
+                    height={24}
+                    style={{ borderRadius: 2, border: '1px solid var(--hair)' }}
+                  />
+                </>
+              )}
               <span
                 style={{
                   fontFamily: 'var(--mono)',

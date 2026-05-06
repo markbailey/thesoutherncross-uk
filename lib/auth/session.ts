@@ -1,10 +1,10 @@
 import type { SessionOptions } from 'iron-session';
 
 export type SessionData = {
-  steamid: string;
-  persona: string;
-  avatar: string;
-  isAdmin: boolean;
+  steamid?: string;
+  persona?: string;
+  avatar?: string;
+  isAdmin?: boolean;
 };
 
 const SESSION_SECRET = process.env['SESSION_SECRET'];

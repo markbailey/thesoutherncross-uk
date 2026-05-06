@@ -8,18 +8,23 @@ export default function HideToggleButton({ id, hidden }: { id: string; hidden: b
 
   async function handleToggle() {
     setBusy(true);
-    const res = await fetch(`/api/admin/servers/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hidden: !current }),
-    });
-    if (res.ok) {
-      setCurrent((v) => !v);
-    } else {
-      const j = await res.json().catch(() => ({}));
-      alert((j as { error?: string }).error ?? 'Update failed');
+    try {
+      const res = await fetch(`/api/admin/servers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hidden: !current }),
+      });
+      if (res.ok) {
+        setCurrent((v) => !v);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        alert((j as { error?: string }).error ?? 'Update failed');
+      }
+    } catch {
+      alert('Network error');
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (

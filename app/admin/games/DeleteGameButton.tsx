@@ -11,12 +11,16 @@ export default function DeleteGameButton({
 }) {
   async function handleDelete() {
     if (!confirm(`Delete game "${name}"? This cannot be undone.`)) return;
-    const res = await fetch(`/api/admin/games/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      window.location.href = '/admin/games';
-    } else {
-      const j = await res.json().catch(() => ({}));
-      alert((j as { error?: string }).error ?? 'Delete failed');
+    try {
+      const res = await fetch(`/api/admin/games/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        window.location.href = '/admin/games';
+      } else {
+        const j = await res.json().catch(() => ({}));
+        alert((j as { error?: string }).error ?? 'Delete failed');
+      }
+    } catch {
+      alert('Network error');
     }
   }
 

@@ -53,7 +53,6 @@ export default function EditServerPage() {
       .then((d) => setGames((d as { games: { id: string; name: string }[] }).games ?? []))
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Failed to load games');
-        setLoading(false);
       });
   }, [id]);
 
@@ -159,7 +158,13 @@ export default function EditServerPage() {
     );
   }
 
-  if (!server) return null;
+  if (!server) {
+    return (
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: '#ef4444', letterSpacing: '0.16em' }}>
+        ERROR: {(error ?? 'FAILED TO LOAD SERVER').toUpperCase()}
+      </div>
+    );
+  }
 
   return (
     <>
