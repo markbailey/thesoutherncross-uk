@@ -70,7 +70,7 @@ export default function EditServerPage() {
       name: data.get('name') as string,
       host: data.get('host') as string,
       port: Number(data.get('port')),
-      game_id: data.get('game_id') as string,
+      game_id: selectedGameId || null,
     };
 
     try {
@@ -264,7 +264,6 @@ export default function EditServerPage() {
                 name="game_id"
                 value={selectedGameId}
                 onChange={(e) => setSelectedGameId(e.target.value)}
-                required
                 style={{
                   fontFamily: 'var(--mono)', fontSize: 12, letterSpacing: '0.08em',
                   color: 'var(--ink)', background: 'rgba(7,6,12,0.8)',
@@ -273,6 +272,7 @@ export default function EditServerPage() {
                   appearance: 'none', WebkitAppearance: 'none',
                 }}
               >
+                <option value="">— UNLINKED —</option>
                 {games.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
             </div>

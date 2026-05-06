@@ -153,6 +153,19 @@ describe('PUT /api/admin/servers/[id]', () => {
     expect(row?.game_id).toBe(game2);
   });
 
+  it('returns 200 and unlinks server when game_id is null', async () => {
+    asAdmin();
+    const res = await PUT(makeRequest('PUT', serverId, { game_id: null }), makeCtx(serverId));
+    expect(res.status).toBe(200);
+    const resBody = await res.json() as { ok: boolean };
+    expect(resBody.ok).toBe(true);
+
+    const row = getDb()
+      .prepare('SELECT game_id FROM servers WHERE id = ?')
+      .get(serverId) as { game_id: string | null } | undefined;
+    expect(row?.game_id).toBeNull();
+  });
+
   it('returns 200 and updates only provided fields', async () => {
     asAdmin();
     const res = await PUT(makeRequest('PUT', serverId, { name: 'Renamed' }), makeCtx(serverId));

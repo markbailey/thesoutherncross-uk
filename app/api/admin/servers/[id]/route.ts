@@ -48,13 +48,17 @@ export async function PUT(req: NextRequest, ctx: RouteContext): Promise<NextResp
     patch.port = portNum;
   }
   if (game_id !== undefined) {
-    if (typeof game_id !== 'string' || !game_id.trim()) {
-      return jsonNoStore({ error: 'game_id must be non-empty string' }, { status: 400 });
+    if (game_id === null) {
+      patch.game_id = null;
+    } else {
+      if (typeof game_id !== 'string' || !game_id.trim()) {
+        return jsonNoStore({ error: 'game_id must be non-empty string or null' }, { status: 400 });
+      }
+      if (!getGameById(game_id)) {
+        return jsonNoStore({ error: 'game not found' }, { status: 422 });
+      }
+      patch.game_id = game_id;
     }
-    if (!getGameById(game_id)) {
-      return jsonNoStore({ error: 'game not found' }, { status: 422 });
-    }
-    patch.game_id = game_id;
   }
 
   updateServer(id, patch);
