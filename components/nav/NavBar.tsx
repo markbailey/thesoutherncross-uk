@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { CruxMark } from '../layout/CruxMark';
 import { GUILD } from '../../config/guild';
 import { VERSION } from '../../config/site';
@@ -17,13 +19,37 @@ const LINKS: Array<{ id: (typeof SECTION_IDS)[number]; label: string }> = [
   { id: 'join', label: 'JOIN' },
 ];
 
-export function NavBar() {
+export type NavBarSession = {
+  steamid: string;
+  persona: string;
+  avatar: string;
+  isAdmin: boolean;
+} | null;
+
+type NavBarProps = {
+  session?: NavBarSession;
+};
+
+/** Inner component that reads search params (must be inside Suspense). */
+function NavBarInner({ session }: NavBarProps) {
   useHashSection();
   const active = useActiveSection(SECTION_IDS);
+  const searchParams = useSearchParams();
+  const [deniedToast, setDeniedToast] = React.useState(false);
+
+  React.useEffect(() => {
+    if (searchParams.get('login') === 'denied') {
+      setDeniedToast(true);
+      const t = setTimeout(() => setDeniedToast(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [searchParams]);
   // Split GUILD.shortName so the trailing token(s) get the green ·-prefixed treatment
   // from the design. e.g. "TSX UK" → "TSX" + "·UK".
   const [brandLead, ...brandRest] = GUILD.shortName.split(' ');
   const brandTail = brandRest.join(' ');
+
+  const returnTo = typeof window !== 'undefined' ? window.location.pathname : '/';
 
   const handleClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -182,20 +208,132 @@ export function NavBar() {
           alignItems: 'center',
         }}
       >
-        <span
+        {session ? (
+          /* Signed-in state */
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {session.isAdmin && (
+              <a
+                href="/admin"
+                style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: 9,
+                  letterSpacing: '0.20em',
+                  textTransform: 'uppercase',
+                  color: 'var(--royal-green-neon)',
+                  textDecoration: 'none',
+                  padding: '4px 8px',
+                  border: '1px solid rgba(57,255,136,0.3)',
+                  transition: 'background .12s',
+                }}
+              >
+                ADMIN
+              </a>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {session.avatar && (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={session.avatar}
+                    alt={session.persona}
+                    width={24}
+                    height={24}
+                    style={{ borderRadius: 2, border: '1px solid var(--hair)' }}
+                  />
+                </>
+              )}
+              <span
+                style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: 10,
+                  letterSpacing: '0.12em',
+                  color: 'var(--ink)',
+                  maxWidth: 96,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {session.persona}
+              </span>
+            </div>
+            <a
+              href="/api/auth/steam/logout"
+              style={{
+                fontFamily: 'var(--mono)',
+                fontSize: 9,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--ink-dim)',
+                textDecoration: 'none',
+                padding: '4px 8px',
+                border: '1px solid var(--hair)',
+                transition: 'color .12s',
+              }}
+            >
+              SIGN OUT
+            </a>
+          </div>
+        ) : (
+          /* Signed-out state */
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                color: 'var(--ink-dim)',
+                fontFamily: 'var(--mono)',
+                fontSize: 10,
+                letterSpacing: '0.14em',
+              }}
+            >
+              <span className="dot on" /> UPLINK
+            </span>
+            <a
+              href={`/api/auth/steam/login?returnTo=${encodeURIComponent(returnTo)}`}
+              style={{
+                fontFamily: 'var(--mono)',
+                fontSize: 10,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                color: 'var(--royal-green-neon)',
+                textDecoration: 'none',
+                padding: '5px 12px',
+                border: '1px solid rgba(57,255,136,0.4)',
+                background: 'rgba(57,255,136,0.06)',
+                transition: 'background .12s, box-shadow .12s',
+              }}
+            >
+              SIGN IN
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Login denied toast */}
+      {deniedToast && (
+        <div
+          role="alert"
+          aria-live="assertive"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            color: 'var(--ink-dim)',
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 100,
             fontFamily: 'var(--mono)',
-            fontSize: 10,
+            fontSize: 11,
             letterSpacing: '0.14em',
+            color: '#f59e0b',
+            background: 'rgba(7,6,12,0.95)',
+            border: '1px solid rgba(245,158,11,0.4)',
+            padding: '12px 20px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
           }}
         >
-          <span className="dot on" /> UPLINK
-        </span>
-      </div>
+          ⚠ SIGN IN DENIED — NOT A GUILD MEMBER
+        </div>
+      )}
 
       <style>{`
         .site-nav__link:hover { color: var(--ink); }
@@ -216,6 +354,34 @@ export function NavBar() {
         }
       `}</style>
     </header>
+  );
+}
+
+/** Exported wrapper — wraps NavBarInner in Suspense so useSearchParams() works
+    without causing the parent to require a Suspense boundary. */
+export function NavBar(props: NavBarProps = {}) {
+  return (
+    <Suspense fallback={<NavBarShell />}>
+      <NavBarInner {...props} />
+    </Suspense>
+  );
+}
+
+/** Static shell rendered during Suspense / SSR — no scroll-spy or search params. */
+function NavBarShell() {
+  return (
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        height: 56,
+        background: 'rgba(7,6,12,0.82)',
+        backdropFilter: 'blur(12px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+        borderBottom: '1px solid var(--hair)',
+      }}
+    />
   );
 }
 

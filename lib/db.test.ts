@@ -22,11 +22,11 @@ describe('db', () => {
     const db = getDb({ dbPath: ':memory:' });
     const rows = db
       .prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name IN ('server_status','status_history','members','meta')`,
+        `SELECT name FROM sqlite_master WHERE type='table' AND name IN ('games','server_status','status_history','members','meta','servers')`,
       )
       .all() as Array<{ name: string }>;
     const names = rows.map((r) => r.name).sort();
-    expect(names).toEqual(['members', 'meta', 'server_status', 'status_history']);
+    expect(names).toEqual(['games', 'members', 'meta', 'server_status', 'servers', 'status_history']);
   });
 
   it('lastPollAt returns null before any write and the stored value after', () => {
@@ -82,5 +82,22 @@ describe('db', () => {
     const a = getDb({ dbPath: ':memory:' });
     const b = getDb();
     expect(a).toBe(b);
+  });
+});
+
+describe('schema migrations', () => {
+  beforeEach(() => { closeDb(); getDb({ dbPath: ':memory:' }); });
+  afterEach(() => closeDb());
+
+  it('creates games table', () => {
+    const db = getDb();
+    const row = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='games'`).get();
+    expect(row).toBeDefined();
+  });
+
+  it('servers table has game_id column', () => {
+    const db = getDb();
+    const cols = db.prepare(`PRAGMA table_info(servers)`).all() as { name: string }[];
+    expect(cols.some(c => c.name === 'game_id')).toBe(true);
   });
 });

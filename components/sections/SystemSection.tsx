@@ -4,7 +4,6 @@ import * as React from 'react';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { HudPanel, HudButton, HudCorner, HairlineDivider } from '../hud';
-import { GAMES } from '../../config/servers';
 import { GUILD } from '../../config/guild';
 import {
   useCameraState,
@@ -23,6 +22,8 @@ const Scene = dynamic(() => import('../solar-system/Scene').then((m) => m.Scene)
 interface ApiServer {
   id: string;
   name: string;
+  host: string;
+  port: number;
   online: boolean;
   players: number | null;
   maxPlayers: number | null;
@@ -37,7 +38,7 @@ interface ApiGame {
   servers: ApiServer[];
 }
 interface ApiResponse {
-  games: ApiGame[];
+  games?: ApiGame[];
   updatedAt: number | null;
 }
 
@@ -47,18 +48,6 @@ const fetcher = async (url: string): Promise<ApiResponse> => {
   return (await res.json()) as ApiResponse;
 };
 
-/** Connect strings come from the static GAMES manifest (hosts are not exposed via API). */
-// Server ids are globally unique across all games — see config/servers.ts. Map is flat by design.
-const CONNECT_STRINGS: Record<string, string> = (() => {
-  const out: Record<string, string> = {};
-  for (const g of GAMES) {
-    for (const s of g.servers) {
-      out[s.id] = `${s.host}:${s.port}`;
-    }
-  }
-  return out;
-})();
-
 // Shallow structural compare for SWR. Compares every rendered field
 // (game/server names, planet visuals, server status/players/map/ping) and
 // ignores only `updatedAt` (top-level + per-server) since it's not rendered —
@@ -66,31 +55,39 @@ const CONNECT_STRINGS: Record<string, string> = (() => {
 function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  if (a.games.length !== b.games.length) return false;
-  for (let i = 0; i < a.games.length; i++) {
-    const ga = a.games[i];
-    const gb = b.games[i];
+
+  // Compare games list
+  const ga = a.games ?? [];
+  const gb = b.games ?? [];
+  if (ga.length !== gb.length) return false;
+  for (let i = 0; i < ga.length; i++) {
+    const g1 = ga[i];
+    const g2 = gb[i];
+    if (!g1 || !g2) return false;
     if (
-      ga.id !== gb.id ||
-      ga.name !== gb.name ||
-      ga.planet.color !== gb.planet.color ||
-      ga.planet.size !== gb.planet.size ||
-      ga.planet.orbitRadius !== gb.planet.orbitRadius ||
-      ga.planet.orbitSpeed !== gb.planet.orbitSpeed
+      g1.id !== g2.id ||
+      g1.name !== g2.name ||
+      g1.planet.color !== g2.planet.color ||
+      g1.planet.size !== g2.planet.size ||
+      g1.planet.orbitRadius !== g2.planet.orbitRadius ||
+      g1.planet.orbitSpeed !== g2.planet.orbitSpeed
     )
       return false;
-    if (ga.servers.length !== gb.servers.length) return false;
-    for (let j = 0; j < ga.servers.length; j++) {
-      const sa = ga.servers[j];
-      const sb = gb.servers[j];
+    if (g1.servers.length !== g2.servers.length) return false;
+    for (let j = 0; j < g1.servers.length; j++) {
+      const s1 = g1.servers[j];
+      const s2 = g2.servers[j];
+      if (!s1 || !s2) return false;
       if (
-        sa.id !== sb.id ||
-        sa.name !== sb.name ||
-        sa.online !== sb.online ||
-        sa.players !== sb.players ||
-        sa.maxPlayers !== sb.maxPlayers ||
-        sa.map !== sb.map ||
-        sa.ping !== sb.ping
+        s1.id !== s2.id ||
+        s1.name !== s2.name ||
+        s1.host !== s2.host ||
+        s1.port !== s2.port ||
+        s1.online !== s2.online ||
+        s1.players !== s2.players ||
+        s1.maxPlayers !== s2.maxPlayers ||
+        s1.map !== s2.map ||
+        s1.ping !== s2.ping
       )
         return false;
     }
@@ -108,8 +105,8 @@ export function SystemSection() {
   });
 
   const games: OverlayGame[] = React.useMemo(() => {
-    const apiGames = data?.games ?? [];
-    return apiGames.map((g) => ({
+    if (!data?.games) return [];
+    return data.games.map((g) => ({
       id: g.id,
       name: g.name,
       servers: g.servers.map<OverlayServer>((s) => ({
@@ -122,7 +119,9 @@ export function SystemSection() {
         ping: s.ping,
         updatedAt: s.updatedAt,
       })),
-      connectStrings: CONNECT_STRINGS,
+      connectStrings: Object.fromEntries(
+        g.servers.map((s) => [s.id, `${s.host}:${s.port}`])
+      ),
     }));
   }, [data]);
 
@@ -233,7 +232,7 @@ export function SystemSection() {
     return () => reset();
   }, [reset]);
 
-  const isEmpty = !isLoading && games.length === 0 && !error;
+  const isEmpty = !isLoading && (!data?.games || data.games.length === 0) && !error;
 
   return (
     <section

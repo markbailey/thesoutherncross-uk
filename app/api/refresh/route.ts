@@ -19,7 +19,7 @@ function handle(req: NextRequest): Response {
 
   // Rate-limit FIRST — so attackers probing wrong secrets can't brute-force
   // without hitting the same IP bucket as legitimate callers.
-  const ip = clientIp(req.headers);
+  const ip = clientIp(req);
   const check = limiter.check(`refresh:${ip}`);
   if (!check.ok) {
     const retryAfter = Math.ceil(check.resetMs / 1000);
