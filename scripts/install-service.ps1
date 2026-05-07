@@ -24,8 +24,8 @@
 # site root (line-delimited KEY=VALUE) and passes the lines through to
 # `nssm set ... AppEnvironmentExtra`. If `.env` is missing, the service is
 # still created but will fail to start usefully - operator must populate
-# `.env` and run `nssm restart TheSouthernCrossUK`. Editing later: either
-# update `.env` and re-run this script, or use `nssm edit TheSouthernCrossUK`
+# `.env` and run `nssm restart <ServiceName>`. Editing later: either
+# update `.env` and re-run this script, or use `nssm edit <ServiceName>`
 # (interactive GUI).
 # ----------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ $ErrorActionPreference = 'Stop'
 
 function Invoke-Nssm {
     & $nssm @args
-    if ($LASTEXITCODE -ne 0) { throw "nssm $args failed (exit $LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) { throw "nssm $($args -join ' ') failed (exit $LASTEXITCODE)" }
 }
 
 # --- Resolve parameters to local names used throughout ----------------------

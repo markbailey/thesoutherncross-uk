@@ -65,8 +65,8 @@ function Test-Health([string] $url) {
 
 # --- preflight --------------------------------------------------------------
 
-if (-not (Test-Path $ZipPath))   { Die "Zip not found: $ZipPath" }
-$ZipPath = (Resolve-Path $ZipPath).Path
+if (-not (Test-Path -LiteralPath $ZipPath)) { Die "Zip not found: $ZipPath" }
+$ZipPath = (Resolve-Path -LiteralPath $ZipPath).Path
 
 $tar = 'C:\Windows\System32\tar.exe'
 if (-not (Test-Path $tar))       { Die "bsdtar not found at $tar (Windows 10+ ships with it)" }
@@ -119,12 +119,12 @@ $lingering = Get-Process node, tsx -ErrorAction SilentlyContinue |
     Where-Object {
         $wmi = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue
         $wmi -and $wmi.ExecutablePath -and
-            ($wmi.CommandLine -like "*$SiteRoot*" -or
-             ($wmi.ExecutablePath -like "$SiteRoot*"))
+            (($wmi.CommandLine -and $wmi.CommandLine.IndexOf($SiteRoot, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) -or
+             $wmi.ExecutablePath.StartsWith($SiteRoot, [System.StringComparison]::OrdinalIgnoreCase))
     }
 if ($lingering) {
     Note "Killing lingering node/tsx pids scoped to ${SiteRoot}: $($lingering.Id -join ', ')"
-    $lingering | Stop-Process -Force
+    $lingering | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 1
 }
 
@@ -137,7 +137,10 @@ if (Test-Path $SiteRoot) {
         Rename-Item -LiteralPath $SiteRoot -NewName $prevLeaf
         $snapshotted = $true
     } catch {
-        if ($serviceExists) { & $NssmPath start $ServiceName 2>&1 | Out-Null }
+        if ($serviceExists) {
+            & $NssmPath start $ServiceName 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { Note "nssm start failed (exit $LASTEXITCODE) - service may still be down" }
+        }
         Die "Failed to snapshot ${SiteRoot}: $_"
     }
 }
@@ -305,8 +308,12 @@ if ($PruneOlderThanDays -gt 0) {
     if ($old) {
         Step "Pruning $($old.Count) snapshot(s) older than $PruneOlderThanDays day(s)"
         foreach ($s in $old) {
-            Remove-Item $s.FullName -Recurse -Force
-            Ok "removed $($s.Name)"
+            try {
+                Remove-Item -LiteralPath $s.FullName -Recurse -Force
+                Ok "removed $($s.Name)"
+            } catch {
+                Note "could not prune $($s.Name): $_"
+            }
         }
     }
 }
