@@ -72,12 +72,13 @@ $tar = 'C:\Windows\System32\tar.exe'
 if (-not (Test-Path $tar))       { Die "bsdtar not found at $tar (Windows 10+ ships with it)" }
 if (-not (Test-Path $NssmPath))  { Die "nssm not found at $NssmPath - run install-prereqs.ps1 first" }
 
-$ts        = Get-Date -Format 'yyyyMMdd-HHmmss'
-$parent    = Split-Path -Parent $SiteRoot
-$leaf      = Split-Path -Leaf   $SiteRoot
-$prevLeaf  = "$leaf-prev-$ts"
-$prev      = Join-Path $parent $prevLeaf
-$staging   = Join-Path $env:TEMP "thesoutherncross-staging-$ts"
+$ts           = Get-Date -Format 'yyyyMMdd-HHmmss'
+$parent       = Split-Path -Parent $SiteRoot
+$leaf         = Split-Path -Leaf   $SiteRoot
+$prevLeaf     = "$leaf-prev-$ts"
+$prev         = Join-Path $parent $prevLeaf
+$staging      = Join-Path $env:TEMP "thesoutherncross-staging-$ts"
+$willSnapshot = Test-Path -LiteralPath $SiteRoot
 
 # Move cwd outside $SiteRoot so the rename can succeed even when invoked from
 # inside wwwroot or wwwroot\scripts.
@@ -87,7 +88,7 @@ try {
 Step "Deploy starting at $ts"
 Write-Host "    Bundle:    $ZipPath"
 Write-Host "    Site root: $SiteRoot"
-Write-Host "    Snapshot:  $prev"
+Write-Host "    Snapshot:  $(if ($willSnapshot) { $prev } else { '(none - first-time deploy)' })"
 Write-Host "    Service:   $ServiceName"
 Write-Host "    Health:    $HealthUrl"
 
