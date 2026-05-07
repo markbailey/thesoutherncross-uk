@@ -53,20 +53,19 @@ function Invoke-Nssm {
 $svc      = $ServiceName
 $nssm     = $NssmPath
 $nodeExe  = $NodeExe
-$siteRoot = $SiteRoot
 
 # Entrypoint: node + tsx CLI .mjs + server.ts. See "Choices" comment above.
-$tsxCli   = Join-Path $siteRoot 'node_modules\tsx\dist\cli.mjs'
+$tsxCli   = Join-Path $SiteRoot 'node_modules\tsx\dist\cli.mjs'
 $appExe   = $nodeExe
 $appArgs  = "`"$tsxCli`" server.ts"
 
-$logsDir  = Join-Path $siteRoot 'logs'
-$envFile  = Join-Path $siteRoot '.env'
+$logsDir  = Join-Path $SiteRoot 'logs'
+$envFile  = Join-Path $SiteRoot '.env'
 
 # --- Sanity checks ----------------------------------------------------------
 if (-not (Test-Path $nssm))    { throw "nssm.exe not found at $nssm. Run install-prereqs.ps1 first." }
 if (-not (Test-Path $nodeExe)) { throw "node.exe not found at $nodeExe. Run install-prereqs.ps1 first." }
-if (-not (Test-Path $siteRoot)) { throw "Site root $siteRoot does not exist. Create it and extract the deploy bundle first." }
+if (-not (Test-Path $SiteRoot)) { throw "Site root $SiteRoot does not exist. Create it and extract the deploy bundle first." }
 
 # Logs dir must exist before nssm starts writing to it.
 New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
@@ -81,7 +80,7 @@ if ($existing) {
     "Refreshing service definition and env from $envFile..."
     Invoke-Nssm set $svc Application    $appExe
     Invoke-Nssm set $svc AppParameters  $appArgs
-    Invoke-Nssm set $svc AppDirectory   $siteRoot
+    Invoke-Nssm set $svc AppDirectory   $SiteRoot
     Invoke-Nssm set $svc AppStdout      (Join-Path $logsDir 'nssm.out.log')
     Invoke-Nssm set $svc AppStderr      (Join-Path $logsDir 'nssm.err.log')
     $refresh = @('NODE_ENV=production','PORT=3000','TRUST_PROXY_HEADERS=1')
@@ -104,7 +103,7 @@ if ($existing) {
 # --- Install service --------------------------------------------------------
 "Installing service '$svc'..."
 Invoke-Nssm install $svc $appExe $appArgs
-Invoke-Nssm set    $svc AppDirectory       $siteRoot
+Invoke-Nssm set    $svc AppDirectory       $SiteRoot
 Invoke-Nssm set    $svc DisplayName        'The Southern Cross UK (Next.js)'
 Invoke-Nssm set    $svc Description        'Next.js custom server for thesoutherncross.uk; reverse-proxied by IIS on 80/443.'
 Invoke-Nssm set    $svc Start              SERVICE_AUTO_START

@@ -57,7 +57,7 @@ function Test-ServiceExists([string] $name) {
 
 function Test-Health([string] $url) {
     try {
-        $r = Invoke-WebRequest $url -TimeoutSec 10
+        $r = Invoke-WebRequest $url -UseBasicParsing -TimeoutSec 10
         if ($r.StatusCode -ne 200) { return $false }
         return [bool] ($r.Content | ConvertFrom-Json).ok
     } catch { return $false }
@@ -132,7 +132,7 @@ if ($lingering) {
 # --- snapshot current install ----------------------------------------------
 
 $snapshotted = $false
-if (Test-Path $SiteRoot) {
+if (Test-Path -LiteralPath $SiteRoot) {
     Step "Snapshotting $SiteRoot -> $prevLeaf"
     try {
         Rename-Item -LiteralPath $SiteRoot -NewName $prevLeaf
