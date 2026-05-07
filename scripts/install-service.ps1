@@ -3,8 +3,10 @@
 # Run from an admin PowerShell on the remote IIS box:
 #   PowerShell -ExecutionPolicy Bypass -File .\install-service.ps1
 #
-# Idempotent: if the service already exists, prints a message and exits 0.
-# To re-create from scratch, run `nssm remove TheSouthernCrossUK confirm`
+# Idempotent: if the service already exists, refreshes the service definition
+# and environment from .env, restarts the service, then exits 0.
+# To re-create from scratch, run `nssm remove <ServiceName> confirm`
+# (replace `<ServiceName>` with the value of -ServiceName; default: TheSouthernCrossUK)
 # then re-run this script.
 #
 # --- Choices documented inline ----------------------------------------------
@@ -22,44 +24,69 @@
 # site root (line-delimited KEY=VALUE) and passes the lines through to
 # `nssm set ... AppEnvironmentExtra`. If `.env` is missing, the service is
 # still created but will fail to start usefully - operator must populate
-# `.env` and run `nssm restart TheSouthernCrossUK`. Editing later: either
-# update `.env` and re-run this script, or use `nssm edit TheSouthernCrossUK`
+# `.env` and run `nssm restart <ServiceName>`. Editing later: either
+# update `.env` and re-run this script, or use `nssm edit <ServiceName>`
 # (interactive GUI).
 # ----------------------------------------------------------------------------
 
+[CmdletBinding()]
+param(
+    [string] $ServiceName   = 'TheSouthernCrossUK',
+    [string] $DisplayName   = 'The Southern Cross UK (Next.js)',
+    [string] $Description   = 'Next.js custom server for thesoutherncross.uk; reverse-proxied by IIS on 80/443.',
+    [string] $SiteRoot      = 'C:\inetpub\wwwroot',
+    [string] $NssmPath      = 'C:\nssm\nssm.exe',
+    [string] $NodeExe       = 'C:\Program Files\nodejs\node.exe'
+)
+
 $ErrorActionPreference = 'Stop'
 
-# --- Parameters (override at top of script if your layout differs) ----------
-$svc      = 'TheSouthernCrossUK'
-$siteRoot = 'C:\inetpub\wwwroot'
-$nssm     = 'C:\nssm\nssm.exe'
-$nodeExe  = 'C:\Program Files\nodejs\node.exe'
+function Invoke-Nssm {
+    & $nssm @args
+    if ($LASTEXITCODE -ne 0) {
+        # Redact AppEnvironmentExtra value — it contains the full .env payload.
+        $idx = [Array]::IndexOf([string[]]$args, 'AppEnvironmentExtra')
+        $display = if ($idx -ge 0) { ($args[0..$idx] + '<redacted>') -join ' ' } else { $args -join ' ' }
+        throw "nssm $display failed (exit $LASTEXITCODE)"
+    }
+}
+
+# --- Resolve parameters to local names used throughout ----------------------
+$svc      = $ServiceName
+$nssm     = $NssmPath
+$nodeExe  = $NodeExe
 
 # Entrypoint: node + tsx CLI .mjs + server.ts. See "Choices" comment above.
-$tsxCli   = Join-Path $siteRoot 'node_modules\tsx\dist\cli.mjs'
+$tsxCli   = Join-Path $SiteRoot 'node_modules\tsx\dist\cli.mjs'
 $appExe   = $nodeExe
 $appArgs  = "`"$tsxCli`" server.ts"
 
-$logsDir  = Join-Path $siteRoot 'logs'
-$envFile  = Join-Path $siteRoot '.env'
+$logsDir  = Join-Path $SiteRoot 'logs'
+$envFile  = Join-Path $SiteRoot '.env'
 
 # --- Sanity checks ----------------------------------------------------------
-if (-not (Test-Path $nssm))    { throw "nssm.exe not found at $nssm. Run install-prereqs.ps1 first." }
-if (-not (Test-Path $nodeExe)) { throw "node.exe not found at $nodeExe. Run install-prereqs.ps1 first." }
-if (-not (Test-Path $siteRoot)) { throw "Site root $siteRoot does not exist. Create it and extract the deploy bundle first." }
+if (-not (Test-Path -LiteralPath $nssm))    { throw "nssm.exe not found at $nssm. Run install-prereqs.ps1 first." }
+if (-not (Test-Path -LiteralPath $nodeExe)) { throw "node.exe not found at $nodeExe. Run install-prereqs.ps1 first." }
+if (-not (Test-Path -LiteralPath $SiteRoot)) { throw "Site root $SiteRoot does not exist. Create it and extract the deploy bundle first." }
 
 # Logs dir must exist before nssm starts writing to it.
-New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
+New-Item -ItemType Directory -Force -LiteralPath $logsDir | Out-Null
 
-# --- Idempotency: if service exists, update env from .env and exit ---------
-# nssm AppEnvironmentExtra is registry-stored at install time and does NOT
-# auto-reload from .env. To rotate secrets we re-set it, then restart.
+# --- Idempotency: if service exists, refresh definition + env and restart ---
+# nssm registry values (Application, AppDirectory, AppParameters,
+# AppEnvironmentExtra) do NOT auto-update; we must re-set them so that
+# changes to -NodeExe, -SiteRoot, or .env take effect on re-runs.
 $existing = Get-Service -Name $svc -ErrorAction SilentlyContinue
 if ($existing) {
     "Service '$svc' already exists (status: $($existing.Status))."
-    "Refreshing AppEnvironmentExtra from $envFile and restarting..."
+    "Refreshing service definition and env from $envFile..."
+    Invoke-Nssm set $svc Application    $appExe
+    Invoke-Nssm set $svc AppParameters  $appArgs
+    Invoke-Nssm set $svc AppDirectory   $SiteRoot
+    Invoke-Nssm set $svc AppStdout      (Join-Path $logsDir 'nssm.out.log')
+    Invoke-Nssm set $svc AppStderr      (Join-Path $logsDir 'nssm.err.log')
     $refresh = @('NODE_ENV=production','PORT=3000','TRUST_PROXY_HEADERS=1')
-    if (Test-Path $envFile) {
+    if (Test-Path -LiteralPath $envFile) {
         Get-Content $envFile | ForEach-Object {
             $line = $_.Trim()
             if (-not $line) { return }
@@ -69,32 +96,32 @@ if ($existing) {
     } else {
         Write-Warning ".env not found at $envFile - only NODE_ENV/PORT/TRUST_PROXY_HEADERS will be set."
     }
-    & $nssm set $svc AppEnvironmentExtra ($refresh -join "`n")
-    & $nssm restart $svc
+    Invoke-Nssm set $svc AppEnvironmentExtra ($refresh -join "`n")
+    Invoke-Nssm restart $svc
     "Done. To re-create from scratch: nssm stop $svc; nssm remove $svc confirm; re-run this script."
     exit 0
 }
 
 # --- Install service --------------------------------------------------------
 "Installing service '$svc'..."
-& $nssm install $svc $appExe $appArgs
-& $nssm set    $svc AppDirectory       $siteRoot
-& $nssm set    $svc DisplayName        'The Southern Cross UK (Next.js)'
-& $nssm set    $svc Description        'Next.js custom server for thesoutherncross.uk; reverse-proxied by IIS on 80/443.'
-& $nssm set    $svc Start              SERVICE_AUTO_START
+Invoke-Nssm install $svc $appExe $appArgs
+Invoke-Nssm set    $svc AppDirectory       $SiteRoot
+Invoke-Nssm set    $svc DisplayName        $DisplayName
+Invoke-Nssm set    $svc Description        $Description
+Invoke-Nssm set    $svc Start              SERVICE_AUTO_START
 
 # --- Logging: stdout + stderr -> rotating files in logs\ --------------------
-& $nssm set    $svc AppStdout          (Join-Path $logsDir 'nssm.out.log')
-& $nssm set    $svc AppStderr          (Join-Path $logsDir 'nssm.err.log')
-& $nssm set    $svc AppRotateFiles     1
-& $nssm set    $svc AppRotateOnline    1
-& $nssm set    $svc AppRotateBytes     10485760   # 10 MB
-& $nssm set    $svc AppStdoutCreationDisposition 4
-& $nssm set    $svc AppStderrCreationDisposition 4
+Invoke-Nssm set    $svc AppStdout          (Join-Path $logsDir 'nssm.out.log')
+Invoke-Nssm set    $svc AppStderr          (Join-Path $logsDir 'nssm.err.log')
+Invoke-Nssm set    $svc AppRotateFiles     1
+Invoke-Nssm set    $svc AppRotateOnline    1
+Invoke-Nssm set    $svc AppRotateBytes     10485760   # 10 MB
+Invoke-Nssm set    $svc AppStdoutCreationDisposition 4
+Invoke-Nssm set    $svc AppStderrCreationDisposition 4
 
 # --- Restart policy: always restart, 5s delay ------------------------------
-& $nssm set    $svc AppExit Default    Restart
-& $nssm set    $svc AppRestartDelay    5000
+Invoke-Nssm set    $svc AppExit Default    Restart
+Invoke-Nssm set    $svc AppRestartDelay    5000
 
 # --- Environment ------------------------------------------------------------
 # Always-set baseline values. Secrets come from .env below.
@@ -104,7 +131,7 @@ $envLines = @(
     'TRUST_PROXY_HEADERS=1'
 )
 
-if (Test-Path $envFile) {
+if (Test-Path -LiteralPath $envFile) {
     "Reading env from $envFile..."
     Get-Content $envFile | ForEach-Object {
         $line = $_.Trim()
@@ -125,7 +152,7 @@ if (Test-Path $envFile) {
 # newlines (\n). Splatting an array passes only the first element, which
 # would silently drop every secret after the first.
 $envString = $envLines -join "`n"
-& $nssm set $svc AppEnvironmentExtra $envString
+Invoke-Nssm set $svc AppEnvironmentExtra $envString
 
 # --- Done -------------------------------------------------------------------
 ''
