@@ -41,13 +41,19 @@ $ErrorActionPreference = 'Stop'
 
 function Invoke-Nssm {
     & $nssm @args
-    if ($LASTEXITCODE -ne 0) { throw "nssm $($args -join ' ') failed (exit $LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) {
+        # Redact AppEnvironmentExtra value — it contains the full .env payload.
+        $idx = [Array]::IndexOf([string[]]$args, 'AppEnvironmentExtra')
+        $display = if ($idx -ge 0) { ($args[0..$idx] + '<redacted>') -join ' ' } else { $args -join ' ' }
+        throw "nssm $display failed (exit $LASTEXITCODE)"
+    }
 }
 
 # --- Resolve parameters to local names used throughout ----------------------
 $svc      = $ServiceName
 $nssm     = $NssmPath
 $nodeExe  = $NodeExe
+$siteRoot = $SiteRoot
 
 # Entrypoint: node + tsx CLI .mjs + server.ts. See "Choices" comment above.
 $tsxCli   = Join-Path $siteRoot 'node_modules\tsx\dist\cli.mjs'
