@@ -50,8 +50,11 @@ Without them, IIS returns `500.50 URL Rewrite Module Error`.
 ```powershell
 Import-Module WebAdministration
 
-# Add the public hostname binding on port 80 (existing default-blank binding stays).
+# Add both apex and www hostname bindings on port 80.
+# web.config redirects apex → www (canonical), so both must be bound for
+# IIS to accept the requests before redirecting.
 New-WebBinding -Name 'Default Web Site' -Protocol 'http' -Port 80 -HostHeader 'thesoutherncross.uk'
+New-WebBinding -Name 'Default Web Site' -Protocol 'http' -Port 80 -HostHeader 'www.thesoutherncross.uk'
 
 # Confirm the site is started
 Start-Website -Name 'Default Web Site' -ErrorAction SilentlyContinue
@@ -90,11 +93,17 @@ New-Item -ItemType Directory -Force -Path 'C:\inetpub\wwwroot\logs' | Out-Null
 STEAM_API_KEY=<your steam web api key>
 STEAM_GROUP_ID=<group vanity name or 64-bit id>
 REFRESH_SECRET=<random long string>
+SITE_BASE_URL=https://www.thesoutherncross.uk
 TRUST_PROXY_HEADERS=1
 ```
 
 `PORT=3000` and `NODE_ENV=production` are set by the service script - don't
 duplicate them here.
+
+`SITE_BASE_URL` must use the **canonical** hostname. Because `web.config`
+redirects the bare apex to `www`, this must be `https://www.thesoutherncross.uk`.
+Getting it wrong (e.g. using the bare apex) causes the Steam login callback to
+loop through an IIS redirect and fail verification.
 
 ### 6. Extract the deploy bundle, install deps, build
 
@@ -166,7 +175,7 @@ Port 3000 stays internal because Node binds to `127.0.0.1` only.
 ### 11. Smoke test
 
 ```powershell
-Invoke-WebRequest https://thesoutherncross.uk/api/health -UseBasicParsing | Select-Object StatusCode, Content
+Invoke-WebRequest https://www.thesoutherncross.uk/api/health -UseBasicParsing | Select-Object StatusCode, Content
 ```
 
 Expect `200` and a JSON body with `"ok":true`. If `dbOk` is true but `ok` is
@@ -191,18 +200,19 @@ npm run build
 From the repo root:
 
 ```powershell
-$exclude = @('node_modules','.next','tests','data','logs','.git','playwright-report','test-results','coverage')
-$staging = "$env:TEMP\thesoutherncross-deploy"
-Remove-Item -Recurse -Force $staging -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $staging | Out-Null
-Get-ChildItem -Force | Where-Object { $exclude -notcontains $_.Name } |
-    Copy-Item -Destination $staging -Recurse -Force
-Compress-Archive -Path "$staging\*" -DestinationPath ".\deploy.zip" -Force
+npm run build:zip
+```
+
+Produces `deploy.zip` via `scripts/build-zip.mjs` (uses `tar.exe`; works
+regardless of PowerShell execution policy). Pass a custom path if needed:
+
+```powershell
+node scripts/build-zip.mjs C:\drop\deploy.zip
 ```
 
 `deploy.zip` contains source + `package.json` + `package-lock.json` +
-`web.config` + `scripts\` but not `node_modules` or `.next` build output.
-The remote box runs `npm ci` and `npm run build` itself.
+`web.config` + `scripts\` but not `node_modules`, `.next`, `.env`, or
+`data/*.sqlite`. The remote box runs `npm ci` and `npm run build` itself.
 
 ### 3. Transfer to the remote box
 
@@ -261,7 +271,7 @@ npm run build
 ```powershell
 nssm start TheSouthernCrossUK
 Start-Sleep -Seconds 5
-Invoke-WebRequest https://thesoutherncross.uk/api/health -UseBasicParsing | Select-Object StatusCode, Content
+Invoke-WebRequest https://www.thesoutherncross.uk/api/health -UseBasicParsing | Select-Object StatusCode, Content
 ```
 
 Expect `200` + `"ok":true`. If false:
@@ -368,7 +378,7 @@ nssm dump     TheSouthernCrossUK    # show full config
 ### Uptime check
 
 Recommended: UptimeRobot HTTPS GET against
-`https://thesoutherncross.uk/api/health` every 5 minutes; alert on non-200.
+`https://www.thesoutherncross.uk/api/health` every 5 minutes; alert on non-200.
 The endpoint returns 503 when `dbOk` is false or the poller is more than
 5 minutes stale.
 
@@ -380,8 +390,10 @@ Run after every routine deploy. Production-relevant subset of the plan's
 [Verification](../plans/thesoutherncross-uk-website-plan.md#verification)
 section.
 
-- [ ] `https://thesoutherncross.uk/api/health` returns 200 and `"ok":true`
-- [ ] `http://thesoutherncross.uk/` 301-redirects to `https://thesoutherncross.uk/`
+- [ ] `https://www.thesoutherncross.uk/api/health` returns 200 and `"ok":true`
+- [ ] `http://thesoutherncross.uk/` 301-redirects to `https://www.thesoutherncross.uk/` (apex→www+HTTPS in one hop)
+- [ ] `http://www.thesoutherncross.uk/` 301-redirects to `https://www.thesoutherncross.uk/` (HTTP→HTTPS)
+- [ ] Steam login completes: click Login → Steam auth page → redirect back → session set, avatar shown
 - [ ] `nssm status TheSouthernCrossUK` reports `SERVICE_RUNNING`
 - [ ] `logs\app.log` shows one poller cycle every ~60s for the last 5 minutes
 - [ ] Landing page renders: sun, planets, orbits, no console errors

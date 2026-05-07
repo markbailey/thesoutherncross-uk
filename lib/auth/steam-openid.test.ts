@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the openid module before importing the module under test.
-const mockAuthenticate = vi.fn();
 const mockVerifyAssertion = vi.fn();
 const MockRelyingParty = vi.fn().mockImplementation(() => ({
-  authenticate: mockAuthenticate,
   verifyAssertion: mockVerifyAssertion,
 }));
 
@@ -18,44 +16,41 @@ vi.mock('openid', () => ({
 const { buildLoginUrl, verifyAssertion } = await import('./steam-openid');
 
 describe('buildLoginUrl', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  const callbackUrl = 'https://www.thesoutherncross.uk/api/auth/steam/callback?returnTo=%2F';
+
+  it("targets Steam's OpenID endpoint", async () => {
+    const url = await buildLoginUrl(callbackUrl);
+    expect(url).toMatch(/^https:\/\/steamcommunity\.com\/openid\/login\?/);
   });
 
-  it('returns a URL containing steamcommunity.com/openid', async () => {
-    const fakeUrl = 'https://steamcommunity.com/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup';
-    mockAuthenticate.mockImplementation(
-      (_identifier: string, _immediate: boolean, cb: (err: null, url: string) => void) => {
-        cb(null, fakeUrl);
-      },
-    );
-
-    const result = await buildLoginUrl('http://localhost:3000/api/auth/steam/callback');
-    expect(result).toContain('steamcommunity.com/openid');
+  it('includes required OpenID 2.0 params', async () => {
+    const url = await buildLoginUrl(callbackUrl);
+    const params = new URL(url).searchParams;
+    expect(params.get('openid.mode')).toBe('checkid_setup');
+    expect(params.get('openid.ns')).toBe('http://specs.openid.net/auth/2.0');
+    expect(params.get('openid.identity')).toBe('http://specs.openid.net/auth/2.0/identifier_select');
+    expect(params.get('openid.claimed_id')).toBe('http://specs.openid.net/auth/2.0/identifier_select');
   });
 
-  it('rejects when authenticate returns an error', async () => {
-    mockAuthenticate.mockImplementation(
-      (_identifier: string, _immediate: boolean, cb: (err: Error, url: null) => void) => {
-        cb(new Error('Discovery failed'), null);
-      },
-    );
-
-    await expect(buildLoginUrl('http://localhost:3000/api/auth/steam/callback')).rejects.toThrow(
-      'Discovery failed',
-    );
+  it('sets return_to to the provided callbackUrl', async () => {
+    const url = await buildLoginUrl(callbackUrl);
+    const params = new URL(url).searchParams;
+    expect(params.get('openid.return_to')).toBe(callbackUrl);
   });
 
-  it('rejects when authenticate returns no URL', async () => {
-    mockAuthenticate.mockImplementation(
-      (_identifier: string, _immediate: boolean, cb: (err: null, url: null) => void) => {
-        cb(null, null);
-      },
-    );
+  it('sets realm from SITE_BASE_URL env var', async () => {
+    process.env['SITE_BASE_URL'] = 'https://www.thesoutherncross.uk';
+    const url = await buildLoginUrl(callbackUrl);
+    const params = new URL(url).searchParams;
+    expect(params.get('openid.realm')).toBe('https://www.thesoutherncross.uk');
+    delete process.env['SITE_BASE_URL'];
+  });
 
-    await expect(buildLoginUrl('http://localhost:3000/api/auth/steam/callback')).rejects.toThrow(
-      'No URL returned',
-    );
+  it('falls back to localhost realm when SITE_BASE_URL is unset', async () => {
+    delete process.env['SITE_BASE_URL'];
+    const url = await buildLoginUrl(callbackUrl);
+    const params = new URL(url).searchParams;
+    expect(params.get('openid.realm')).toBe('http://localhost:3000');
   });
 });
 
