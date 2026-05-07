@@ -11,7 +11,7 @@ follow `docs/deploy.md` Section A. This script handles every deploy after.
 
 ## Prerequisites
 
-On the target box:
+On the target box (run all examples from an **elevated (Admin) PowerShell session**):
 
 - Windows + PowerShell 5+ (or 7+)
 - `C:\Windows\System32\tar.exe` (bsdtar — ships with Windows 10/11 + Server 2019+)

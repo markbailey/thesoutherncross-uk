@@ -69,8 +69,8 @@ if (-not (Test-Path -LiteralPath $ZipPath)) { Die "Zip not found: $ZipPath" }
 $ZipPath = (Resolve-Path -LiteralPath $ZipPath).Path
 
 $tar = 'C:\Windows\System32\tar.exe'
-if (-not (Test-Path $tar))       { Die "bsdtar not found at $tar (Windows 10+ ships with it)" }
-if (-not (Test-Path $NssmPath))  { Die "nssm not found at $NssmPath - run install-prereqs.ps1 first" }
+if (-not (Test-Path -LiteralPath $tar))       { Die "bsdtar not found at $tar (Windows 10+ ships with it)" }
+if (-not (Test-Path -LiteralPath $NssmPath))  { Die "nssm not found at $NssmPath - run install-prereqs.ps1 first" }
 
 $ts           = Get-Date -Format 'yyyyMMdd-HHmmss'
 $parent       = Split-Path -Parent $SiteRoot

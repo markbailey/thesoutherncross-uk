@@ -46,7 +46,6 @@ function Invoke-Nssm {
 
 # --- Resolve parameters to local names used throughout ----------------------
 $svc      = $ServiceName
-$siteRoot = $SiteRoot
 $nssm     = $NssmPath
 $nodeExe  = $NodeExe
 
