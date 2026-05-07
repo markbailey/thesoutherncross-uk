@@ -31,10 +31,12 @@
 
 [CmdletBinding()]
 param(
-    [string] $ServiceName = 'TheSouthernCrossUK',
-    [string] $SiteRoot    = 'C:\inetpub\wwwroot',
-    [string] $NssmPath    = 'C:\nssm\nssm.exe',
-    [string] $NodeExe     = 'C:\Program Files\nodejs\node.exe'
+    [string] $ServiceName   = 'TheSouthernCrossUK',
+    [string] $DisplayName   = 'The Southern Cross UK (Next.js)',
+    [string] $Description   = 'Next.js custom server for thesoutherncross.uk; reverse-proxied by IIS on 80/443.',
+    [string] $SiteRoot      = 'C:\inetpub\wwwroot',
+    [string] $NssmPath      = 'C:\nssm\nssm.exe',
+    [string] $NodeExe       = 'C:\Program Files\nodejs\node.exe'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -104,8 +106,8 @@ if ($existing) {
 "Installing service '$svc'..."
 Invoke-Nssm install $svc $appExe $appArgs
 Invoke-Nssm set    $svc AppDirectory       $SiteRoot
-Invoke-Nssm set    $svc DisplayName        'The Southern Cross UK (Next.js)'
-Invoke-Nssm set    $svc Description        'Next.js custom server for thesoutherncross.uk; reverse-proxied by IIS on 80/443.'
+Invoke-Nssm set    $svc DisplayName        $DisplayName
+Invoke-Nssm set    $svc Description        $Description
 Invoke-Nssm set    $svc Start              SERVICE_AUTO_START
 
 # --- Logging: stdout + stderr -> rotating files in logs\ --------------------
