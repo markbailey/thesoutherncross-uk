@@ -173,7 +173,7 @@ Step "Installing new bundle to $SiteRoot"
 $requiredEnvKeys = @('REFRESH_SECRET', 'STEAM_API_KEY', 'STEAM_GROUP_ID')
 try {
     Move-Item -LiteralPath $staging -Destination $SiteRoot
-    New-Item -ItemType Directory -Force -Path (Join-Path $SiteRoot 'logs') | Out-Null
+    New-Item -ItemType Directory -Force -LiteralPath (Join-Path $SiteRoot 'logs') | Out-Null
     # Reset ACL inheritance from parent so IIS can serve the new wwwroot.
     & icacls $SiteRoot /reset /t /c /q | Out-Null
     if ($LASTEXITCODE -ne 0) { Die "icacls ACL reset failed (exit $LASTEXITCODE)" }
@@ -214,7 +214,7 @@ try {
     $envFile = Join-Path $SiteRoot '.env'
     $missingKeys = @()
     if (Test-Path -LiteralPath $envFile) {
-        $envContent = Get-Content $envFile -Raw
+        $envContent = Get-Content -LiteralPath $envFile -Raw
         foreach ($key in $requiredEnvKeys) {
             if ($envContent -notmatch "(?m)^$key=.+") { $missingKeys += $key }
         }
@@ -225,7 +225,7 @@ try {
         Note "Missing required env keys: $($missingKeys -join ', ')"
         Note "Edit $envFile and set these values, then press Enter to continue (or Ctrl+C to abort)."
         Read-Host "Press Enter once .env is ready"
-        $envContent = if (Test-Path -LiteralPath $envFile) { Get-Content $envFile -Raw } else { '' }
+        $envContent = if (Test-Path -LiteralPath $envFile) { Get-Content -LiteralPath $envFile -Raw } else { '' }
         $stillMissing = $missingKeys | Where-Object { $envContent -notmatch "(?m)^$_=.+" }
         if ($stillMissing.Count -gt 0) {
             if (-not $SkipRollback) { Invoke-Rollback }
@@ -304,7 +304,7 @@ Ok "Smoke test passed"
 
 if ($PruneOlderThanDays -gt 0) {
     $cutoff = (Get-Date).AddDays(-$PruneOlderThanDays)
-    $old = Get-ChildItem -Path $parent -Directory -Filter "$leaf-prev-*" -ErrorAction SilentlyContinue |
+    $old = Get-ChildItem -LiteralPath $parent -Directory -Filter "$leaf-prev-*" -ErrorAction SilentlyContinue |
         Where-Object { $_.LastWriteTime -lt $cutoff -and $_.FullName -ne $prev }
     if ($old) {
         Step "Pruning $($old.Count) snapshot(s) older than $PruneOlderThanDays day(s)"

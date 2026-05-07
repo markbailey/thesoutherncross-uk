@@ -70,7 +70,7 @@ if (-not (Test-Path -LiteralPath $nodeExe)) { throw "node.exe not found at $node
 if (-not (Test-Path -LiteralPath $SiteRoot)) { throw "Site root $SiteRoot does not exist. Create it and extract the deploy bundle first." }
 
 # Logs dir must exist before nssm starts writing to it.
-New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
+New-Item -ItemType Directory -Force -LiteralPath $logsDir | Out-Null
 
 # --- Idempotency: if service exists, refresh definition + env and restart ---
 # nssm registry values (Application, AppDirectory, AppParameters,
