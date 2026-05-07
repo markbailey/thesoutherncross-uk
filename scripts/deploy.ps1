@@ -35,7 +35,7 @@ param(
     [Parameter(Mandatory=$true)] [string] $ZipPath,
     [string] $SiteRoot           = 'C:\inetpub\wwwroot',
     [string] $ServiceName        = 'TheSouthernCrossUK',
-    [string] $HealthUrl          = 'https://thesoutherncross.uk/api/health',
+    [string] $HealthUrl          = 'https://www.thesoutherncross.uk/api/health',
     [string] $NssmPath           = 'C:\nssm\nssm.exe',
     [string] $NodeExe            = 'C:\Program Files\nodejs\node.exe',
     [switch] $SkipRollback,
@@ -106,10 +106,15 @@ Ok "Extracted"
 
 $serviceExists = Test-ServiceExists $ServiceName
 if ($serviceExists) {
-    Step "Stopping $ServiceName"
-    & $NssmPath stop $ServiceName 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { Die "nssm stop $ServiceName failed (exit $LASTEXITCODE)" }
-    Start-Sleep -Seconds 2
+    $svcStatus = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status
+    if ($svcStatus -eq 'Running') {
+        Step "Stopping $ServiceName"
+        & $NssmPath stop $ServiceName 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "nssm stop $ServiceName failed (exit $LASTEXITCODE)" }
+        Start-Sleep -Seconds 2
+    } else {
+        Note "$ServiceName is registered but not running (status: $svcStatus) - skipping stop"
+    }
 } else {
     Note "$ServiceName not installed - treating as first-time deploy"
 }
@@ -156,7 +161,7 @@ function Invoke-Rollback {
     # Wrap so a rollback failure doesn't propagate and mask the original error.
     try {
         Step "Rolling back to $prevLeaf"
-        & $NssmPath stop $ServiceName 2>&1 | Out-Null
+        try { & $NssmPath stop $ServiceName *>&1 | Out-Null } catch {}
         Start-Sleep -Seconds 2
         if (Test-Path -LiteralPath $SiteRoot) { Remove-Item -LiteralPath $SiteRoot -Recurse -Force -ErrorAction SilentlyContinue }
         Rename-Item -LiteralPath $prev -NewName $leaf
@@ -170,10 +175,10 @@ function Invoke-Rollback {
 # --- swap staging -> SiteRoot (rollback on failure) ------------------------
 
 Step "Installing new bundle to $SiteRoot"
-$requiredEnvKeys = @('REFRESH_SECRET', 'STEAM_API_KEY', 'STEAM_GROUP_ID')
+$requiredEnvKeys = @('REFRESH_SECRET', 'STEAM_API_KEY', 'STEAM_GROUP_ID', 'SITE_BASE_URL')
 try {
     Move-Item -LiteralPath $staging -Destination $SiteRoot
-    New-Item -ItemType Directory -Force -LiteralPath (Join-Path $SiteRoot 'logs') | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $SiteRoot 'logs') | Out-Null
     # Reset ACL inheritance from parent so IIS can serve the new wwwroot.
     & icacls $SiteRoot /reset /t /c /q | Out-Null
     if ($LASTEXITCODE -ne 0) { Die "icacls ACL reset failed (exit $LASTEXITCODE)" }
@@ -194,7 +199,7 @@ try {
             Note "No .env in snapshot - $SiteRoot\.env must hold prod values before service start"
         }
 
-        # Preserve on-box web.config — it may contain local IIS/TLS tweaks that
+        # Preserve on-box web.config -- it may contain local IIS/TLS tweaks that
         # the bundle copy must not overwrite.
         $webConfigSrc = Join-Path $prev 'web.config'
         if (Test-Path -LiteralPath $webConfigSrc) {
@@ -210,7 +215,7 @@ try {
     }
 
     # Validate required env keys on every deploy so missing credentials are
-    # caught before the build — /api/health does not check Steam/refresh keys.
+    # caught before the build -- /api/health does not check Steam/refresh keys.
     $envFile = Join-Path $SiteRoot '.env'
     $missingKeys = @()
     if (Test-Path -LiteralPath $envFile) {
@@ -222,15 +227,8 @@ try {
         $missingKeys = $requiredEnvKeys
     }
     if ($missingKeys.Count -gt 0) {
-        Note "Missing required env keys: $($missingKeys -join ', ')"
-        Note "Edit $envFile and set these values, then press Enter to continue (or Ctrl+C to abort)."
-        Read-Host "Press Enter once .env is ready"
-        $envContent = if (Test-Path -LiteralPath $envFile) { Get-Content -LiteralPath $envFile -Raw } else { '' }
-        $stillMissing = $missingKeys | Where-Object { $envContent -notmatch "(?m)^$_=.+" }
-        if ($stillMissing.Count -gt 0) {
-            if (-not $SkipRollback) { Invoke-Rollback }
-            Die "Required env keys still missing after edit: $($stillMissing -join ', ')"
-        }
+        if (-not $SkipRollback) { Invoke-Rollback }
+        Die "Missing required env keys: $($missingKeys -join ', ') -- set them in $envFile before deploying"
     }
 } catch {
     if (-not $SkipRollback) { Invoke-Rollback }
@@ -278,7 +276,12 @@ if ($LASTEXITCODE -ne 0) {
 # install-service.ps1 restarts the service when re-run on an existing install,
 # but leaves it stopped on first install. Start it unconditionally.
 Step "Starting $ServiceName"
-& $NssmPath start $ServiceName 2>&1 | Out-Null
+$svcStatusPre = (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue).Status
+if ($svcStatusPre -ne 'Running') {
+    & $NssmPath start $ServiceName 2>&1 | Out-Null
+} else {
+    Note "$ServiceName already running - skipping start"
+}
 if ($LASTEXITCODE -ne 0) {
     if (-not $SkipRollback) { Invoke-Rollback }
     Die "nssm start $ServiceName failed (exit $LASTEXITCODE)"
