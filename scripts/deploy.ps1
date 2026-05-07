@@ -154,7 +154,7 @@ function Invoke-Rollback {
         Step "Rolling back to $prevLeaf"
         & $NssmPath stop $ServiceName 2>&1 | Out-Null
         Start-Sleep -Seconds 2
-        if (Test-Path $SiteRoot) { Remove-Item -Recurse -Force $SiteRoot -ErrorAction SilentlyContinue }
+        if (Test-Path -LiteralPath $SiteRoot) { Remove-Item -LiteralPath $SiteRoot -Recurse -Force -ErrorAction SilentlyContinue }
         Rename-Item -LiteralPath $prev -NewName $leaf
         & $NssmPath start $ServiceName 2>&1 | Out-Null
         Note "Rolled back. Site restored to $SiteRoot. Investigate before retry (use -SkipRollback to suppress auto-rollback)."

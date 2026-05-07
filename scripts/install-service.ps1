@@ -5,7 +5,8 @@
 #
 # Idempotent: if the service already exists, refreshes the service definition
 # and environment from .env, restarts the service, then exits 0.
-# To re-create from scratch, run `nssm remove TheSouthernCrossUK confirm`
+# To re-create from scratch, run `nssm remove <ServiceName> confirm`
+# (replace `<ServiceName>` with the value of -ServiceName; default: TheSouthernCrossUK)
 # then re-run this script.
 #
 # --- Choices documented inline ----------------------------------------------
@@ -97,24 +98,24 @@ if ($existing) {
 
 # --- Install service --------------------------------------------------------
 "Installing service '$svc'..."
-& $nssm install $svc $appExe $appArgs
-& $nssm set    $svc AppDirectory       $siteRoot
-& $nssm set    $svc DisplayName        'The Southern Cross UK (Next.js)'
-& $nssm set    $svc Description        'Next.js custom server for thesoutherncross.uk; reverse-proxied by IIS on 80/443.'
-& $nssm set    $svc Start              SERVICE_AUTO_START
+Invoke-Nssm install $svc $appExe $appArgs
+Invoke-Nssm set    $svc AppDirectory       $siteRoot
+Invoke-Nssm set    $svc DisplayName        'The Southern Cross UK (Next.js)'
+Invoke-Nssm set    $svc Description        'Next.js custom server for thesoutherncross.uk; reverse-proxied by IIS on 80/443.'
+Invoke-Nssm set    $svc Start              SERVICE_AUTO_START
 
 # --- Logging: stdout + stderr -> rotating files in logs\ --------------------
-& $nssm set    $svc AppStdout          (Join-Path $logsDir 'nssm.out.log')
-& $nssm set    $svc AppStderr          (Join-Path $logsDir 'nssm.err.log')
-& $nssm set    $svc AppRotateFiles     1
-& $nssm set    $svc AppRotateOnline    1
-& $nssm set    $svc AppRotateBytes     10485760   # 10 MB
-& $nssm set    $svc AppStdoutCreationDisposition 4
-& $nssm set    $svc AppStderrCreationDisposition 4
+Invoke-Nssm set    $svc AppStdout          (Join-Path $logsDir 'nssm.out.log')
+Invoke-Nssm set    $svc AppStderr          (Join-Path $logsDir 'nssm.err.log')
+Invoke-Nssm set    $svc AppRotateFiles     1
+Invoke-Nssm set    $svc AppRotateOnline    1
+Invoke-Nssm set    $svc AppRotateBytes     10485760   # 10 MB
+Invoke-Nssm set    $svc AppStdoutCreationDisposition 4
+Invoke-Nssm set    $svc AppStderrCreationDisposition 4
 
 # --- Restart policy: always restart, 5s delay ------------------------------
-& $nssm set    $svc AppExit Default    Restart
-& $nssm set    $svc AppRestartDelay    5000
+Invoke-Nssm set    $svc AppExit Default    Restart
+Invoke-Nssm set    $svc AppRestartDelay    5000
 
 # --- Environment ------------------------------------------------------------
 # Always-set baseline values. Secrets come from .env below.
@@ -145,7 +146,7 @@ if (Test-Path $envFile) {
 # newlines (\n). Splatting an array passes only the first element, which
 # would silently drop every secret after the first.
 $envString = $envLines -join "`n"
-& $nssm set $svc AppEnvironmentExtra $envString
+Invoke-Nssm set $svc AppEnvironmentExtra $envString
 
 # --- Done -------------------------------------------------------------------
 ''
