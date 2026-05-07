@@ -63,9 +63,9 @@ $logsDir  = Join-Path $SiteRoot 'logs'
 $envFile  = Join-Path $SiteRoot '.env'
 
 # --- Sanity checks ----------------------------------------------------------
-if (-not (Test-Path $nssm))    { throw "nssm.exe not found at $nssm. Run install-prereqs.ps1 first." }
-if (-not (Test-Path $nodeExe)) { throw "node.exe not found at $nodeExe. Run install-prereqs.ps1 first." }
-if (-not (Test-Path $SiteRoot)) { throw "Site root $SiteRoot does not exist. Create it and extract the deploy bundle first." }
+if (-not (Test-Path -LiteralPath $nssm))    { throw "nssm.exe not found at $nssm. Run install-prereqs.ps1 first." }
+if (-not (Test-Path -LiteralPath $nodeExe)) { throw "node.exe not found at $nodeExe. Run install-prereqs.ps1 first." }
+if (-not (Test-Path -LiteralPath $SiteRoot)) { throw "Site root $SiteRoot does not exist. Create it and extract the deploy bundle first." }
 
 # Logs dir must exist before nssm starts writing to it.
 New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
@@ -84,7 +84,7 @@ if ($existing) {
     Invoke-Nssm set $svc AppStdout      (Join-Path $logsDir 'nssm.out.log')
     Invoke-Nssm set $svc AppStderr      (Join-Path $logsDir 'nssm.err.log')
     $refresh = @('NODE_ENV=production','PORT=3000','TRUST_PROXY_HEADERS=1')
-    if (Test-Path $envFile) {
+    if (Test-Path -LiteralPath $envFile) {
         Get-Content $envFile | ForEach-Object {
             $line = $_.Trim()
             if (-not $line) { return }
@@ -129,7 +129,7 @@ $envLines = @(
     'TRUST_PROXY_HEADERS=1'
 )
 
-if (Test-Path $envFile) {
+if (Test-Path -LiteralPath $envFile) {
     "Reading env from $envFile..."
     Get-Content $envFile | ForEach-Object {
         $line = $_.Trim()
