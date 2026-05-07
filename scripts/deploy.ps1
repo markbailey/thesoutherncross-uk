@@ -119,9 +119,9 @@ if ($serviceExists) {
 $lingering = Get-Process node, tsx -ErrorAction SilentlyContinue |
     Where-Object {
         $wmi = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue
-        $wmi -and $wmi.ExecutablePath -and
+        $wmi -and
             (($wmi.CommandLine -and $wmi.CommandLine.IndexOf($SiteRoot, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) -or
-             $wmi.ExecutablePath.StartsWith($SiteRoot, [System.StringComparison]::OrdinalIgnoreCase))
+             ($wmi.ExecutablePath -and $wmi.ExecutablePath.StartsWith($SiteRoot, [System.StringComparison]::OrdinalIgnoreCase)))
     }
 if ($lingering) {
     Note "Killing lingering node/tsx pids scoped to ${SiteRoot}: $($lingering.Id -join ', ')"
@@ -187,8 +187,8 @@ try {
 try {
     if ($snapshotted) {
         $envSrc = Join-Path $prev '.env'
-        if (Test-Path $envSrc) {
-            Copy-Item $envSrc (Join-Path $SiteRoot '.env') -Force
+        if (Test-Path -LiteralPath $envSrc) {
+            Copy-Item -LiteralPath $envSrc -Destination (Join-Path $SiteRoot '.env') -Force
             Ok ".env restored from snapshot"
         } else {
             Note "No .env in snapshot - $SiteRoot\.env must hold prod values before service start"
@@ -197,14 +197,14 @@ try {
         # Preserve on-box web.config — it may contain local IIS/TLS tweaks that
         # the bundle copy must not overwrite.
         $webConfigSrc = Join-Path $prev 'web.config'
-        if (Test-Path $webConfigSrc) {
-            Copy-Item $webConfigSrc (Join-Path $SiteRoot 'web.config') -Force
+        if (Test-Path -LiteralPath $webConfigSrc) {
+            Copy-Item -LiteralPath $webConfigSrc -Destination (Join-Path $SiteRoot 'web.config') -Force
             Ok "web.config preserved from snapshot"
         }
 
         $dataSrc = Join-Path $prev 'data'
-        if (Test-Path $dataSrc) {
-            Copy-Item $dataSrc $SiteRoot -Recurse -Force
+        if (Test-Path -LiteralPath $dataSrc) {
+            Copy-Item -LiteralPath $dataSrc -Destination $SiteRoot -Recurse -Force
             Ok "data\ restored from snapshot"
         }
     }
@@ -213,7 +213,7 @@ try {
     # caught before the build — /api/health does not check Steam/refresh keys.
     $envFile = Join-Path $SiteRoot '.env'
     $missingKeys = @()
-    if (Test-Path $envFile) {
+    if (Test-Path -LiteralPath $envFile) {
         $envContent = Get-Content $envFile -Raw
         foreach ($key in $requiredEnvKeys) {
             if ($envContent -notmatch "(?m)^$key=.+") { $missingKeys += $key }
@@ -225,7 +225,7 @@ try {
         Note "Missing required env keys: $($missingKeys -join ', ')"
         Note "Edit $envFile and set these values, then press Enter to continue (or Ctrl+C to abort)."
         Read-Host "Press Enter once .env is ready"
-        $envContent = if (Test-Path $envFile) { Get-Content $envFile -Raw } else { '' }
+        $envContent = if (Test-Path -LiteralPath $envFile) { Get-Content $envFile -Raw } else { '' }
         $stillMissing = $missingKeys | Where-Object { $envContent -notmatch "(?m)^$_=.+" }
         if ($stillMissing.Count -gt 0) {
             if (-not $SkipRollback) { Invoke-Rollback }
@@ -258,7 +258,7 @@ try {
 # --- register / refresh service env from .env ------------------------------
 
 $installScript = Join-Path $SiteRoot 'scripts\install-service.ps1'
-if (-not (Test-Path $installScript)) {
+if (-not (Test-Path -LiteralPath $installScript)) {
     if (-not $SkipRollback) { Invoke-Rollback }
     Die "scripts\install-service.ps1 missing in bundle"
 }
