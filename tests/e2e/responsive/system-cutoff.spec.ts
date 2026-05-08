@@ -39,14 +39,17 @@ test.describe('SystemSection desktop has scene @responsive', () => {
     await setup(page);
   });
 
-  test('renders canvas on desktop at 1280px @responsive', async ({ page }) => {
+  test('does not render the mobile section header at 1280px @responsive', async ({ page }) => {
     await page.locator('#system').scrollIntoViewIfNeeded();
-    // Wait for the dynamic import to load
-    await page.waitForTimeout(1000);
-    // Canvas is present on desktop (WebGL may still be unavailable in headless,
-    // so we check that SceneShell attempts to render it, not that it succeeds)
-    // At minimum, the section should be visible and not showing a mobile list header
+    await page.waitForTimeout(600);
     const section = page.locator('#system');
     await expect(section).toBeVisible();
+
+    // At desktop width, SceneShell renders the 3D scene path — the mobile
+    // status legend (which only appears alongside the mobile list in FullBleedLayout)
+    // must NOT be present. The mobile layout renders the legend as a direct sibling
+    // of the SceneShell wrapper inside a padded container.
+    const mobileStatusLegend = section.locator('div:has(> .dot.on) + div:has(> .dot.warn)');
+    await expect(mobileStatusLegend).toHaveCount(0);
   });
 });

@@ -90,8 +90,6 @@ export function Hero() {
         <div
           className="hero-status-row"
           style={{
-            display: 'flex',
-            gap: 24,
             color: 'var(--ink-dim)',
             fontSize: 10,
             letterSpacing: '0.24em',
@@ -182,9 +180,6 @@ export function Hero() {
           bottom: 24,
           left: 20,
           right: 20,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'end',
           color: 'var(--ink-faint)',
           fontSize: 10,
           letterSpacing: '0.2em',
@@ -201,30 +196,6 @@ export function Hero() {
           <span className="num">52.519°N · 013.405°E · ALT 0420KM</span>
         </div>
       </div>
-
-      <style>{`
-        /* Mobile: orbit arcs subtler */
-        @media (max-width: 767px) {
-          .hero-orbit-arcs { opacity: 0.22 !important; }
-        }
-        /* Mobile: status row wraps to 2×2 grid */
-        @media (max-width: 767px) {
-          .hero-status-row {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 16px !important;
-            text-align: center;
-          }
-        }
-        /* Mobile: bottom spec strip stacks vertically */
-        @media (max-width: 767px) {
-          .hero-spec-strip {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 6px;
-          }
-        }
-      `}</style>
     </section>
   );
 }

@@ -7,13 +7,16 @@
  *
  * The `dynamic()` import for Scene lives here so the heavy R3F/Three.js chunk
  * is never fetched on phones.
+ *
+ * `isDesktop` is passed as a prop from SystemSection — SceneShell does NOT call
+ * useMediaQuery itself, keeping the hook call single-sourced.
  */
 
 import * as React from 'react';
 import dynamic from 'next/dynamic';
-import { useMediaQuery } from '../../lib/useMediaQuery';
 import { ListMode } from '../solar-system/ListMode';
 import type { OverlayGame } from '../solar-system/HudOverlay';
+import styles from './SceneShell.module.css';
 
 // Desktop-only — not included in the mobile bundle path
 const Scene = dynamic(() => import('../solar-system/Scene').then((m) => m.Scene), {
@@ -47,6 +50,8 @@ export interface SceneShellProps {
   loading: boolean;
   error: boolean;
   focusedGameId: string | null;
+  /** Passed from SystemSection; drives the mobile/desktop branch. */
+  isDesktop: boolean;
 }
 
 /**
@@ -61,18 +66,12 @@ export function SceneShell({
   loading,
   error,
   focusedGameId,
+  isDesktop,
 }: SceneShellProps) {
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
-
   // Mobile (<lg): always render ListMode — no 3D, no R3F download
   if (!isDesktop) {
     return (
-      <div
-        style={{
-          padding: '20px 20px 32px',
-          minHeight: '50vh',
-        }}
-      >
+      <div className={styles.mobileList}>
         <ListMode games={games} />
       </div>
     );
@@ -89,7 +88,7 @@ export function SceneShell({
 
   if (useFallback) {
     return (
-      <div style={{ position: 'absolute', inset: '72px 24px 64px 24px' }}>
+      <div className={styles.fallbackList}>
         <ListMode games={games} />
       </div>
     );
@@ -109,19 +108,7 @@ export function SceneShell({
 
 function SceneShellSkeleton() {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--ink-dim)',
-        fontFamily: 'var(--mono)',
-        fontSize: 11,
-        letterSpacing: '0.18em',
-      }}
-    >
+    <div className={styles.skeleton}>
       ESTABLISHING UPLINK…
     </div>
   );
@@ -151,19 +138,7 @@ class SceneErrorBoundary extends React.Component<
   render() {
     if (this.state.failed) {
       return (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--status-warn)',
-            fontFamily: 'var(--mono)',
-            fontSize: 11,
-            letterSpacing: '0.18em',
-          }}
-        >
+        <div className={styles.errorBoundaryMsg}>
           3D UNAVAILABLE — FALLBACK ENGAGED
         </div>
       );

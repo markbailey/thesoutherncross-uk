@@ -2,16 +2,7 @@
 
 import * as React from 'react';
 import { useActiveSection } from './useActiveSection';
-
-const SECTION_IDS = ['hero', 'about', 'system', 'members', 'join'] as const;
-
-const LINKS: Array<{ id: (typeof SECTION_IDS)[number]; label: string }> = [
-  { id: 'hero', label: 'HOME' },
-  { id: 'about', label: 'ABOUT' },
-  { id: 'system', label: 'SYSTEM' },
-  { id: 'members', label: 'MEMBERS' },
-  { id: 'join', label: 'JOIN' },
-];
+import { SECTION_IDS, NAV_LINKS } from './navLinks';
 
 export interface NavDrawerProps {
   open: boolean;
@@ -125,7 +116,7 @@ export function NavDrawer({ open, onClose }: NavDrawerProps) {
         {/* Nav links */}
         <nav aria-label="Mobile navigation">
           <ul className="nav-drawer__list">
-            {LINKS.map((link) => {
+            {NAV_LINKS.map((link) => {
               const isActive = active === link.id;
               return (
                 <li key={link.id}>

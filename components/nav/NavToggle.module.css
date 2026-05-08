@@ -1,0 +1,33 @@
+.toggle {
+  @apply flex flex-col items-center justify-center bg-transparent cursor-pointer flex-shrink-0 p-0;
+  gap: 0.3125rem; /* 5px */
+  width: 2.75rem;  /* 44px */
+  height: 2.75rem; /* 44px */
+  border: 1px solid var(--hair);
+}
+
+.toggle:focus-visible {
+  @apply outline-none;
+  outline: 2px solid var(--royal-green-neon);
+  outline-offset: 2px;
+}
+
+.bar {
+  @apply block;
+  width: 1.125rem; /* 18px */
+  height: 1px;
+  background: var(--royal-green-neon);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.barTop.open {
+  transform: translateY(0.375rem) rotate(45deg);
+}
+
+.barMid.open {
+  opacity: 0;
+}
+
+.barBot.open {
+  transform: translateY(-0.375rem) rotate(-45deg);
+}

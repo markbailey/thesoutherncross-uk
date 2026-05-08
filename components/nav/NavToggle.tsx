@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import styles from './NavToggle.module.css';
 
 interface NavToggleProps {
   open: boolean;
@@ -19,54 +20,19 @@ export function NavToggle({ open, onToggle }: NavToggleProps) {
       aria-expanded={open}
       aria-controls="nav-drawer"
       onClick={onToggle}
-      className="site-nav__toggle"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 5,
-        width: 44,
-        height: 44,
-        background: 'transparent',
-        border: '1px solid var(--hair)',
-        cursor: 'pointer',
-        padding: 0,
-        flexShrink: 0,
-      }}
+      className={styles.toggle}
     >
       <span
         aria-hidden
-        style={{
-          display: 'block',
-          width: 18,
-          height: 1,
-          background: 'var(--royal-green-neon)',
-          transition: 'transform 0.2s ease, opacity 0.2s ease',
-          ...(open ? { transform: 'translateY(6px) rotate(45deg)' } : {}),
-        }}
+        className={[styles.bar, styles.barTop, open ? styles.open : ''].filter(Boolean).join(' ')}
       />
       <span
         aria-hidden
-        style={{
-          display: 'block',
-          width: 18,
-          height: 1,
-          background: 'var(--royal-green-neon)',
-          transition: 'opacity 0.2s ease',
-          ...(open ? { opacity: 0 } : {}),
-        }}
+        className={[styles.bar, styles.barMid, open ? styles.open : ''].filter(Boolean).join(' ')}
       />
       <span
         aria-hidden
-        style={{
-          display: 'block',
-          width: 18,
-          height: 1,
-          background: 'var(--royal-green-neon)',
-          transition: 'transform 0.2s ease, opacity 0.2s ease',
-          ...(open ? { transform: 'translateY(-6px) rotate(-45deg)' } : {}),
-        }}
+        className={[styles.bar, styles.barBot, open ? styles.open : ''].filter(Boolean).join(' ')}
       />
     </button>
   );

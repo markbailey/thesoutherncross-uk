@@ -62,7 +62,6 @@ export function AboutSection() {
           maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '1fr',
           gap: 32,
           alignItems: 'stretch',
         }}
@@ -220,7 +219,6 @@ export function AboutSection() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: 14,
               }}
               className="vitals-grid"
@@ -308,23 +306,6 @@ export function AboutSection() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media (min-width: 768px) {
-          .about-grid { grid-template-columns: 1.35fr 1fr !important; }
-        }
-        @media (min-width: 480px) {
-          .vitals-grid { grid-template-columns: repeat(3, 1fr) !important; }
-        }
-        @media (min-width: 1024px) {
-          .vitals-grid { grid-template-columns: repeat(5, 1fr) !important; }
-        }
-        .comms-value {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-      `}</style>
     </section>
   );
 }

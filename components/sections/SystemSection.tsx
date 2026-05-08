@@ -331,8 +331,8 @@ function FullBleedLayout({
           loading={loading}
           error={error}
           focusedGameId={focusedGameId}
+          isDesktop={false}
         />
-        {/* Mobile status legend */}
         <div
           style={{
             marginTop: 16,
@@ -444,6 +444,7 @@ function FullBleedLayout({
         loading={loading}
         error={error}
         focusedGameId={focusedGameId}
+        isDesktop={true}
       />
 
       {/* Hint band — shown in all scene states; only hidden in list-mode/fallback. */}

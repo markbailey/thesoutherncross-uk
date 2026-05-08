@@ -163,10 +163,8 @@ export function JoinSection() {
               className="join-cta-row"
               style={{
                 marginTop: 22,
-                display: 'flex',
                 gap: 12,
                 flexWrap: 'wrap',
-                alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
@@ -250,15 +248,6 @@ export function JoinSection() {
           <span>EST. {GUILD.established}</span>
         </div>
       </div>
-
-      <style>{`
-        /* Mobile (<md): hide side ticks, stack CTAs */
-        @media (max-width: 767px) {
-          .join-side-ticks { display: none; }
-          .join-cta-row { flex-direction: column !important; align-items: stretch !important; }
-          .join-cta-row .hud-btn { min-width: unset !important; width: 100%; }
-        }
-      `}</style>
     </section>
   );
 }
