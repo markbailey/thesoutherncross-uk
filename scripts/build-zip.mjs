@@ -1,7 +1,10 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 
-const tar = process.platform === 'win32' ? 'C:\\Windows\\System32\\tar.exe' : 'tar';
+const tar =
+  process.platform === 'win32'
+    ? `${process.env.SystemRoot ?? 'C:\\Windows'}\\System32\\tar.exe`
+    : 'tar';
 const output = 'deploy.zip';
 const excludes = [
   '--exclude=.git',
