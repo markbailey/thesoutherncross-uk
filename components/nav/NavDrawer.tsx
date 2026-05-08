@@ -94,7 +94,7 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
         className={`nav-drawer-backdrop${open ? ' nav-drawer-backdrop--open' : ''}`}
       />
 
-      {/* Drawer panel */}
+      {/* Drawer panel — inert when closed removes all focus targets during/after the close transition */}
       <div
         id="nav-drawer"
         ref={drawerRef}
@@ -102,6 +102,7 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
         aria-modal="true"
         aria-label="Navigation menu"
         aria-hidden={!open}
+        inert={!open || undefined}
         className={`nav-drawer${open ? ' nav-drawer--open' : ''}`}
       >
         {/* Close button row */}

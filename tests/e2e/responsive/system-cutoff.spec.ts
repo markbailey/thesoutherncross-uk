@@ -2,7 +2,7 @@
  * @responsive
  * system-cutoff.spec.ts — Verifies that:
  *   - At 390px: ListMode is rendered, no R3F <canvas> is present.
- *   - At 1280px: Scene canvas is present (desktop gets the 3D view).
+ *   - At 1280px: Desktop HUD chrome is rendered (canvas skipped — WebGL unavailable in headless Chromium).
  */
 import { test, expect, type Page } from '@playwright/test';
 import { mockApi } from '../../lib/mockApi';

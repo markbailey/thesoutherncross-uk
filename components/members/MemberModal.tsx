@@ -154,7 +154,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
           className="member-modal-body"
           style={{ gap: 0 }}
         >
-          <div className="member-modal-detail" style={{ padding: '20px 28px', borderRight: '1px solid var(--hair)' }}>
+          <div className="member-modal-detail" style={{ padding: '20px 28px' }}>
             <div className="eyebrow p" style={{ marginBottom: 8 }}>
               // BIO
             </div>

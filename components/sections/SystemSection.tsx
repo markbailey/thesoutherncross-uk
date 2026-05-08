@@ -592,20 +592,7 @@ function FullBleedLayout({
 
 function EmptyState() {
   return (
-    <div
-      style={{
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: 1440,
-        margin: '0 auto',
-        height: 'calc(100vh - 56px)',
-        minHeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px',
-      }}
-    >
+    <div className="system-empty-state">
       <DecorativeSystem />
 
       <div style={{ position: 'relative', width: 420, maxWidth: '100%' }}>

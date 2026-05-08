@@ -72,6 +72,36 @@ for (const viewport of [MOBILE_VIEWPORT, NARROW_TABLET_VIEWPORT]) {
       const closeBtn = page.locator('#nav-drawer button[aria-label="Close navigation menu"]');
       await expect(closeBtn).toBeFocused();
     });
+
+    test('focus returns to hamburger toggle when drawer closes via ESC @responsive', async ({ page }) => {
+      // WCAG 2.1 SC 2.4.3: focus must return to the trigger element on close.
+      const toggle = page.locator('[aria-controls="nav-drawer"]');
+      await toggle.click();
+      await page.waitForTimeout(100);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(100);
+      await expect(toggle).toBeFocused();
+    });
+
+    test('focus is trapped inside open drawer (Tab wrap) @responsive', async ({ page }) => {
+      // WCAG 2.1 SC 2.1.2: keyboard focus must not leave the dialog.
+      await page.locator('[aria-controls="nav-drawer"]').click();
+      await page.waitForTimeout(100);
+
+      // Collect all focusable elements inside the open drawer.
+      const focusable = page.locator(
+        '#nav-drawer button:visible, #nav-drawer a:visible, #nav-drawer [tabindex="0"]:visible',
+      );
+      const count = await focusable.count();
+      expect(count).toBeGreaterThan(0);
+
+      // Tab forward through all items; focus should wrap back to the first.
+      for (let i = 0; i < count; i++) {
+        await page.keyboard.press('Tab');
+      }
+      // After tabbing through every focusable element, focus wraps to element 0.
+      await expect(focusable.first()).toBeFocused();
+    });
   });
 }
 

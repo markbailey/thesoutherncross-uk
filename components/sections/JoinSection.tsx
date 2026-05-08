@@ -181,7 +181,6 @@ export function JoinSection() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  minWidth: 200,
                   minHeight: 48,
                   justifyContent: 'center',
                 }}
@@ -203,7 +202,6 @@ export function JoinSection() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  minWidth: 200,
                   minHeight: 48,
                   justifyContent: 'center',
                 }}
