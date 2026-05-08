@@ -30,6 +30,8 @@ function NavBarInner({ session }: NavBarProps) {
   const searchParams = useSearchParams();
   const [deniedToast, setDeniedToast] = React.useState(false);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  // Ref forwarded to NavToggle; NavDrawer restores focus here on close (WCAG 2.1 SC 2.4.3).
+  const toggleRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     if (searchParams.get('login') === 'denied') {
@@ -333,7 +335,7 @@ function NavBarInner({ session }: NavBarProps) {
 
       {/* Mobile hamburger — hidden on md+ via CSS */}
       <div className="site-nav__mobile-actions">
-        <NavToggle open={drawerOpen} onToggle={() => setDrawerOpen((v) => !v)} />
+        <NavToggle ref={toggleRef} open={drawerOpen} onToggle={() => setDrawerOpen((v) => !v)} />
       </div>
 
       <style>{`
@@ -365,7 +367,7 @@ function NavBarInner({ session }: NavBarProps) {
     </header>
 
     {/* Mobile drawer — rendered outside header to avoid stacking-context issues */}
-    <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} triggerRef={toggleRef} />
     </>
   );
 }

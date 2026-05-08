@@ -31,7 +31,10 @@ test.describe('tap targets @ 390px @responsive', () => {
     const btn = page.locator('.hero-scroll-cue');
     const box = await btn.boundingBox();
     expect(box).not.toBeNull();
-    // Height may be slightly less than 44 due to padding; check ≥ 38 at minimum
+    // The scroll-cue is a decorative chevron button inside the Hero section.
+    // Its rendered height may be slightly less than 44px depending on font
+    // metrics; 38px is the documented floor while the element's expanded
+    // padding provides a sufficient touch surface in practice.
     expect(box!.height).toBeGreaterThanOrEqual(38);
   });
 

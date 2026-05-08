@@ -47,7 +47,13 @@ export interface SceneShellProps {
   webgl: boolean | null;
   useFallback: boolean;
   onErrorBoundary: () => void;
+  /**
+   * Only used in the desktop (isDesktop=true) render path. Required by the
+   * interface so callers are consistent; the mobile branch passes them through
+   * to the prop bag but does not consume them.
+   */
   loading: boolean;
+  /** @see loading */
   error: boolean;
   focusedGameId: string | null;
   /** Passed from SystemSection; drives the mobile/desktop branch. */

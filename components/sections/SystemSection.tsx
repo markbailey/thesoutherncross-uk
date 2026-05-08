@@ -306,6 +306,7 @@ function FullBleedLayout({
       <div style={{ padding: '24px 20px 40px' }}>
         {/* Mobile section header */}
         <div style={{ marginBottom: 24 }}>
+          {/* Decorative HUD label — intentional design-system aesthetic */}
           <div className="eyebrow p" style={{ marginBottom: 6 }}>
             // SERVER HUB
           </div>
@@ -334,6 +335,7 @@ function FullBleedLayout({
           isDesktop={false}
         />
         <div
+          data-testid="mobile-status-legend"
           style={{
             marginTop: 16,
             display: 'flex',

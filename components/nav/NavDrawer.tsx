@@ -7,6 +7,8 @@ import { SECTION_IDS, NAV_LINKS } from './navLinks';
 export interface NavDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** Ref to the toggle button; focus is returned here when the drawer closes. */
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -14,19 +16,21 @@ export interface NavDrawerProps {
  * Handles ESC close, focus trap, body-scroll lock, and safe-area-inset padding.
  * Slide animation is skipped when prefers-reduced-motion is active.
  */
-export function NavDrawer({ open, onClose }: NavDrawerProps) {
+export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
   const active = useActiveSection(SECTION_IDS);
   const drawerRef = React.useRef<HTMLDivElement>(null);
   const closeRef = React.useRef<HTMLButtonElement>(null);
 
-  // Focus the close button when drawer opens
+  // Focus the close button when drawer opens; return focus to trigger on close.
   React.useEffect(() => {
     if (open) {
       // Defer slightly so the drawer CSS transition has started
       const t = setTimeout(() => closeRef.current?.focus(), 50);
       return () => clearTimeout(t);
+    } else {
+      triggerRef?.current?.focus();
     }
-  }, [open]);
+  }, [open, triggerRef]);
 
   // Focus trap + ESC key handler
   React.useEffect(() => {
@@ -113,8 +117,8 @@ export function NavDrawer({ open, onClose }: NavDrawerProps) {
           </button>
         </div>
 
-        {/* Nav links */}
-        <nav aria-label="Mobile navigation">
+        {/* Nav links — tabIndex=-1 prevents Tab access when drawer is hidden (belt-and-suspenders alongside visibility:hidden) */}
+        <nav aria-label="Mobile navigation" tabIndex={open ? undefined : -1}>
           <ul className="nav-drawer__list">
             {NAV_LINKS.map((link) => {
               const isActive = active === link.id;

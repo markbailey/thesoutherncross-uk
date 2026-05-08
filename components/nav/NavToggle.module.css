@@ -7,7 +7,6 @@
 }
 
 .toggle:focus-visible {
-  @apply outline-none;
   outline: 2px solid var(--royal-green-neon);
   outline-offset: 2px;
 }

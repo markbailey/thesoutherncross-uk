@@ -1,4 +1,6 @@
 .mobileList {
+  /* pb-8 (2rem) is intentionally larger than the other sides (1.25rem) to
+     provide scroll breathing-room below the last game card on mobile. */
   @apply pb-8;
   padding-left: 1.25rem;  /* 20px */
   padding-right: 1.25rem;

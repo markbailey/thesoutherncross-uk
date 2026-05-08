@@ -335,6 +335,11 @@ body {
   animation: fadeIn 600ms ease-out forwards;
 }
 
+@keyframes memberModalFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* JoinSection CTA reveal — gated by no-preference so reduced-motion users
    never render an initial opacity:0 state. Delay matches the boot-log
    sequence (1700ms last line + ~250ms termLine + ~100ms buffer). */
@@ -584,6 +589,39 @@ body {
 }
 @media (min-width: 768px) {
   .join-side-ticks { display: block; }
+}
+
+/* ── MemberModal responsive ───────────────────────────────────────── */
+/* Base layout pulled from inline style props so @media can override without
+   needing !important. */
+.member-modal-overlay {
+  padding: 3rem 1.5rem;
+  align-items: flex-start;
+}
+.member-modal-panel {
+  max-width: 57.5rem; /* 920px */
+}
+.member-modal-body {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+}
+@media (max-width: 767px) {
+  .member-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+  .member-modal-panel {
+    max-width: 100%;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .member-modal-body {
+    grid-template-columns: 1fr;
+  }
+  .member-modal-body > div:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--hair);
+  }
 }
 
 /* member-card hover. Why: filter: drop-shadow (not box-shadow) so the glow

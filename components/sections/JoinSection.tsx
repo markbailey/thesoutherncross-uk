@@ -260,8 +260,8 @@ function SideTicks({ side }: { side: 'left' | 'right' }) {
       aria-hidden
       style={{
         position: 'absolute',
-        top: 96,
-        bottom: 96,
+        top: 64,
+        bottom: 80,
         width: 12,
         pointerEvents: 'none',
         ...edge,
