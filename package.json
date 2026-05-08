@@ -25,6 +25,7 @@
     "dev": "tsx server.ts",
     "dev:demo": "cross-env DEMO_SERVERS=1 tsx server.ts",
     "build": "next build",
+    "build:zip": "node ./scripts/build-zip.mjs",
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
