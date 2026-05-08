@@ -31,7 +31,7 @@ export function AboutSection() {
       id="about"
       style={{
         position: 'relative',
-        padding: '96px 32px',
+        padding: '64px 20px',
         borderTop: '1px solid var(--hair)',
         background: 'var(--space)',
         overflow: 'hidden',
@@ -62,10 +62,11 @@ export function AboutSection() {
           maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '1.35fr 1fr',
+          gridTemplateColumns: '1fr',
           gap: 32,
           alignItems: 'stretch',
         }}
+        className="about-grid"
       >
         {/* Left — Mission Brief */}
         <div className="hud-panel scanlines" style={{ position: 'relative' }}>
@@ -222,6 +223,7 @@ export function AboutSection() {
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: 14,
               }}
+              className="vitals-grid"
             >
               {statItems.map(([key, label]) => (
                 <div
@@ -284,7 +286,7 @@ export function AboutSection() {
                   }}
                 >
                   <span style={{ color: 'var(--royal-green-neon)' }}>{k}</span>
-                  <span style={{ color: 'var(--ink)' }}>{v}</span>
+                  <span style={{ color: 'var(--ink)' }} className="comms-value">{v}</span>
                 </div>
               ))}
             </div>
@@ -308,10 +310,19 @@ export function AboutSection() {
       </div>
 
       <style>{`
-        @media (max-width: 880px) {
-          #about > div:last-child {
-            grid-template-columns: 1fr !important;
-          }
+        @media (min-width: 768px) {
+          .about-grid { grid-template-columns: 1.35fr 1fr !important; }
+        }
+        @media (min-width: 480px) {
+          .vitals-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+        @media (min-width: 1024px) {
+          .vitals-grid { grid-template-columns: repeat(5, 1fr) !important; }
+        }
+        .comms-value {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       `}</style>
     </section>

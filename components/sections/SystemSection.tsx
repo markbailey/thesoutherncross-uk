@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { HudPanel, HudButton, HudCorner, HairlineDivider } from '../hud';
 import { GUILD } from '../../config/guild';
@@ -11,13 +10,9 @@ import {
   SYSTEM_USER_ZOOM_MAX,
 } from '../solar-system/useCameraState';
 import { isWebGLAvailable } from '../solar-system/webgl';
-import { HudOverlay, type OverlayGame, type OverlayServer } from '../solar-system/HudOverlay';
-import { ListMode } from '../solar-system/ListMode';
-
-const Scene = dynamic(() => import('../solar-system/Scene').then((m) => m.Scene), {
-  ssr: false,
-  loading: () => <SceneSkeleton />,
-});
+import { type OverlayGame, type OverlayServer } from '../solar-system/HudOverlay';
+import { SceneShell } from './SceneShell';
+import { useMediaQuery } from '../../lib/useMediaQuery';
 
 interface ApiServer {
   id: string;
@@ -159,6 +154,8 @@ export function SystemSection() {
   const reset = useCameraState((s) => s.reset);
   const deselect = useCameraState((s) => s.deselect);
 
+  // Mobile (<lg): always render ListMode; desktop: respect webgl / listMode flags
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
   const useFallback = webgl === false || listMode;
 
   // Deep-link restore must run exactly once after `games` first populates;
@@ -239,12 +236,12 @@ export function SystemSection() {
       id="system"
       style={{
         position: 'relative',
-        minHeight: 'calc(100vh - 56px)',
+        minHeight: isDesktop ? 'calc(100vh - 56px)' : undefined,
         padding: 0,
         borderTop: '1px solid var(--hair)',
         background:
           'radial-gradient(ellipse at center, #050414 0%, #020106 70%), var(--space)',
-        overflow: 'hidden',
+        overflow: isDesktop ? 'hidden' : undefined,
       }}
     >
       {isEmpty ? (
@@ -259,6 +256,7 @@ export function SystemSection() {
           onErrorBoundary={() => setListMode(true)}
           listMode={listMode}
           webgl={webgl}
+          isDesktop={isDesktop}
         />
       )}
     </section>
@@ -284,6 +282,7 @@ interface FullBleedLayoutProps {
   onErrorBoundary: () => void;
   listMode: boolean;
   webgl: boolean | null;
+  isDesktop: boolean;
 }
 function FullBleedLayout({
   games,
@@ -294,11 +293,67 @@ function FullBleedLayout({
   onErrorBoundary,
   listMode,
   webgl,
+  isDesktop,
 }: FullBleedLayoutProps) {
   const focusedGameId = useCameraState((s) => s.focusedGameId);
   const userZoom = useCameraState((s) => s.userZoom);
   const setUserZoom = useCameraState((s) => s.setUserZoom);
   const toggleListMode = useCameraState((s) => s.toggleListMode);
+
+  // Mobile layout: section header + ListMode in normal flow
+  if (!isDesktop) {
+    return (
+      <div style={{ padding: '24px 20px 40px' }}>
+        {/* Mobile section header */}
+        <div style={{ marginBottom: 24 }}>
+          <div className="eyebrow p" style={{ marginBottom: 6 }}>
+            // SERVER HUB
+          </div>
+          <div className="display" style={{ fontSize: 22, letterSpacing: '0.18em', color: 'var(--ink)', marginBottom: 4 }}>
+            ORBITAL RECON
+          </div>
+          <div className="crumb" style={{ fontSize: 10 }}>
+            <span>OPS</span>
+            <span className="sep">/</span>
+            <b>SYSTEM</b>
+            <span className="sep">·</span>
+            <span className="eyebrow g" style={{ fontSize: 9, letterSpacing: '0.24em' }}>
+              {games.length ? `${games.length} WORLDS · LIVE` : 'NO WORLDS'}
+            </span>
+          </div>
+        </div>
+        <SceneShell
+          games={games}
+          sceneGames={sceneGames}
+          webgl={webgl}
+          useFallback={useFallback}
+          onErrorBoundary={onErrorBoundary}
+          loading={loading}
+          error={error}
+          focusedGameId={focusedGameId}
+        />
+        {/* Mobile status legend */}
+        <div
+          style={{
+            marginTop: 16,
+            display: 'flex',
+            gap: 16,
+            fontSize: 10,
+            color: 'var(--ink-faint)',
+            letterSpacing: '0.14em',
+            fontFamily: 'var(--mono)',
+            textTransform: 'uppercase',
+          }}
+        >
+          <span><span className="dot on" /> ONLINE</span>
+          <span><span className="dot warn" /> LAGGY</span>
+          <span><span className="dot off" /> OFFLINE</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout: full-bleed absolute-positioned with HUD chrome
   return (
     <div
       style={{
@@ -379,18 +434,17 @@ function FullBleedLayout({
       <HudCorner corner="bl" />
       <HudCorner corner="br" />
 
-      {/* Scene fills the section behind the HUD overlay. */}
-      {webgl === null ? (
-        <SceneSkeleton />
-      ) : useFallback ? (
-        <div style={{ position: 'absolute', inset: '72px 24px 64px 24px' }}>
-          <ListMode games={games} />
-        </div>
-      ) : (
-        <SceneErrorBoundary onError={onErrorBoundary}>
-          <Scene games={sceneGames} onWebGLFailure={onErrorBoundary} />
-        </SceneErrorBoundary>
-      )}
+      {/* Scene / ListMode — delegated to SceneShell */}
+      <SceneShell
+        games={games}
+        sceneGames={sceneGames}
+        webgl={webgl}
+        useFallback={useFallback}
+        onErrorBoundary={onErrorBoundary}
+        loading={loading}
+        error={error}
+        focusedGameId={focusedGameId}
+      />
 
       {/* Hint band — shown in all scene states; only hidden in list-mode/fallback. */}
       {!useFallback ? (
@@ -535,76 +589,8 @@ function FullBleedLayout({
       >
         RA 00 14 12 · DEC +37 12
       </div>
-
-      {/* Right-side floating HUD overlay — only when a planet/server is selected. */}
-      {focusedGameId ? <HudOverlay games={games} loading={loading} error={error} /> : null}
     </div>
   );
-}
-
-function SceneSkeleton() {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--ink-dim)',
-        fontFamily: 'var(--mono)',
-        fontSize: 11,
-        letterSpacing: '0.18em',
-      }}
-    >
-      ESTABLISHING UPLINK…
-    </div>
-  );
-}
-
-interface SceneErrorBoundaryProps {
-  onError: () => void;
-  children: React.ReactNode;
-}
-interface SceneErrorBoundaryState {
-  failed: boolean;
-}
-class SceneErrorBoundary extends React.Component<
-  SceneErrorBoundaryProps,
-  SceneErrorBoundaryState
-> {
-  constructor(props: SceneErrorBoundaryProps) {
-    super(props);
-    this.state = { failed: false };
-  }
-  static getDerivedStateFromError(): SceneErrorBoundaryState {
-    return { failed: true };
-  }
-  componentDidCatch() {
-    this.props.onError();
-  }
-  render() {
-    if (this.state.failed) {
-      return (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--status-warn)',
-            fontFamily: 'var(--mono)',
-            fontSize: 11,
-            letterSpacing: '0.18em',
-          }}
-        >
-          3D UNAVAILABLE — FALLBACK ENGAGED
-        </div>
-      );
-    }
-    return this.props.children;
-  }
 }
 
 function EmptyState() {

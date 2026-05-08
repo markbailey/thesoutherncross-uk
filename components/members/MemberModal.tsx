@@ -113,6 +113,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      className="member-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -129,7 +130,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
       }}
     >
       <div
-        className="hud-panel scanlines"
+        className="hud-panel scanlines member-modal-panel"
         style={{
           position: 'relative',
           width: '100%',
@@ -153,6 +154,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
         />
 
         <div
+          className="member-modal-body"
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
@@ -263,6 +265,26 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
         @keyframes memberModalFade {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        /* Mobile (<md): full-screen modal */
+        @media (max-width: 767px) {
+          .member-modal-overlay {
+            padding: 0 !important;
+            align-items: stretch !important;
+          }
+          .member-modal-panel {
+            max-width: 100% !important;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+          }
+          .member-modal-body {
+            grid-template-columns: 1fr !important;
+          }
+          .member-modal-body > div:first-child {
+            border-right: none !important;
+            border-bottom: 1px solid var(--hair);
+          }
         }
       `}</style>
     </div>
@@ -471,7 +493,9 @@ function ModalHeader({
             position: 'absolute',
             top: 0,
             right: 0,
-            padding: '8px 14px',
+            padding: '12px 14px',
+            minWidth: 44,
+            minHeight: 44,
             fontSize: 11,
             letterSpacing: '0.2em',
           }}

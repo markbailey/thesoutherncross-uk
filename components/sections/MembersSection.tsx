@@ -120,7 +120,7 @@ export function MembersSection() {
       id="members"
       style={{
         position: 'relative',
-        padding: '72px 32px 96px',
+        padding: '48px 20px 64px',
         borderTop: '1px solid var(--hair)',
         background: 'var(--space)',
       }}
@@ -223,7 +223,7 @@ export function MembersSection() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
               gap: 14,
             }}
           >
@@ -349,7 +349,7 @@ function SkeletonGrid() {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
         gap: 14,
       }}
     >

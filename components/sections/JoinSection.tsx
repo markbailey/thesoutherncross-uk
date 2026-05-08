@@ -57,7 +57,7 @@ export function JoinSection() {
       id="join"
       style={{
         position: 'relative',
-        padding: '96px 32px 120px',
+        padding: '64px 20px 80px',
         borderTop: '1px solid var(--hair)',
         background: 'var(--space)',
         overflow: 'hidden',
@@ -74,8 +74,10 @@ export function JoinSection() {
         }}
       />
 
-      <SideTicks side="left" />
-      <SideTicks side="right" />
+      <div className="join-side-ticks">
+        <SideTicks side="left" />
+        <SideTicks side="right" />
+      </div>
 
       <div
         style={{
@@ -158,6 +160,7 @@ export function JoinSection() {
             </div>
 
             <div
+              className="join-cta-row"
               style={{
                 marginTop: 22,
                 display: 'flex',
@@ -180,7 +183,8 @@ export function JoinSection() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  minWidth: 240,
+                  minWidth: 200,
+                  minHeight: 48,
                   justifyContent: 'center',
                 }}
               >
@@ -201,7 +205,8 @@ export function JoinSection() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  minWidth: 240,
+                  minWidth: 200,
+                  minHeight: 48,
                   justifyContent: 'center',
                 }}
               >
@@ -245,6 +250,15 @@ export function JoinSection() {
           <span>EST. {GUILD.established}</span>
         </div>
       </div>
+
+      <style>{`
+        /* Mobile (<md): hide side ticks, stack CTAs */
+        @media (max-width: 767px) {
+          .join-side-ticks { display: none; }
+          .join-cta-row { flex-direction: column !important; align-items: stretch !important; }
+          .join-cta-row .hud-btn { min-width: unset !important; width: 100%; }
+        }
+      `}</style>
     </section>
   );
 }

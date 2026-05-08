@@ -8,6 +8,8 @@ import { GUILD } from '../../config/guild';
 import { VERSION } from '../../config/site';
 import { useActiveSection } from './useActiveSection';
 import { useHashSection } from './useHashSection';
+import { NavToggle } from './NavToggle';
+import { NavDrawer } from './NavDrawer';
 
 const SECTION_IDS = ['hero', 'about', 'system', 'members', 'join'] as const;
 
@@ -36,6 +38,7 @@ function NavBarInner({ session }: NavBarProps) {
   const active = useActiveSection(SECTION_IDS);
   const searchParams = useSearchParams();
   const [deniedToast, setDeniedToast] = React.useState(false);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (searchParams.get('login') === 'denied') {
@@ -66,6 +69,7 @@ function NavBarInner({ session }: NavBarProps) {
   };
 
   return (
+    <>
     <header
       className="site-nav"
       style={{
@@ -75,7 +79,7 @@ function NavBarInner({ session }: NavBarProps) {
         height: 56,
         display: 'flex',
         alignItems: 'center',
-        padding: '0 32px',
+        padding: '0 20px',
         background: 'rgba(7,6,12,0.82)',
         backdropFilter: 'blur(12px) saturate(140%)',
         WebkitBackdropFilter: 'blur(12px) saturate(140%)',
@@ -124,6 +128,7 @@ function NavBarInner({ session }: NavBarProps) {
 
       <nav
         aria-label="Primary"
+        className="site-nav__primary"
         style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}
       >
         <ul
@@ -335,6 +340,11 @@ function NavBarInner({ session }: NavBarProps) {
         </div>
       )}
 
+      {/* Mobile hamburger — hidden on md+ via CSS */}
+      <div className="site-nav__mobile-actions">
+        <NavToggle open={drawerOpen} onToggle={() => setDrawerOpen((v) => !v)} />
+      </div>
+
       <style>{`
         .site-nav__link:hover { color: var(--ink); }
         .site-nav__link.nav-active { color: var(--royal-green-neon); }
@@ -343,17 +353,29 @@ function NavBarInner({ session }: NavBarProps) {
           outline: 2px solid var(--royal-green-neon);
           outline-offset: 2px;
         }
-        @media (max-width: 880px) {
-          .site-nav__rail { display: none !important; }
+        /* Mobile-first: hamburger visible, inline nav + rail hidden */
+        .site-nav__mobile-actions { display: flex; margin-left: auto; }
+        .site-nav__primary { display: none !important; }
+        .site-nav__rail { display: none !important; }
+        /* md+ (768px): inline nav replaces hamburger */
+        @media (min-width: 768px) {
+          .site-nav__mobile-actions { display: none !important; }
+          .site-nav__primary { display: flex !important; margin-left: auto; }
+        }
+        /* Rail visible at 880px+ */
+        @media (min-width: 880px) {
+          .site-nav__rail { display: flex !important; }
         }
         @media (max-width: 640px) {
           .site-nav__brand .eyebrow { display: none; }
           .site-nav__brand .display { font-size: 11px !important; letter-spacing: 0.18em !important; }
-          .site-nav__links { gap: 0 !important; }
-          .site-nav__link { padding: 6px 8px !important; letter-spacing: 0.14em !important; font-size: 10px !important; }
         }
       `}</style>
     </header>
+
+    {/* Mobile drawer — rendered outside header to avoid stacking-context issues */}
+    <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    </>
   );
 }
 
