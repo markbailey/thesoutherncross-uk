@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getDb, closeDb } from '../../../lib/db';
 import { createGame } from '../../../lib/repos/games';
 import { GET } from './route';
@@ -74,6 +74,7 @@ describe('GET /api/servers', () => {
 
   afterEach(() => {
     closeDb();
+    vi.unstubAllEnvs();
   });
 
   it('returns empty games array when db has no servers', async () => {
@@ -169,14 +170,8 @@ describe('GET /api/servers', () => {
   });
 
   it('returns demo response when DEMO_SERVERS=1', () => {
-    const original = process.env['DEMO_SERVERS'];
-    process.env['DEMO_SERVERS'] = '1';
-    try {
-      const res = GET();
-      expect(res.status).toBe(200);
-    } finally {
-      if (original === undefined) delete process.env['DEMO_SERVERS'];
-      else process.env['DEMO_SERVERS'] = original;
-    }
+    vi.stubEnv('DEMO_SERVERS', '1');
+    const res = GET();
+    expect(res.status).toBe(200);
   });
 });
