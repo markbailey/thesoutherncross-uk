@@ -12,7 +12,7 @@ vi.mock('next/headers', () => ({
 
 // --- Mock lib/auth/session (avoids SESSION_SECRET env-var throw at import time) ---
 vi.mock('../../../../../../lib/auth/session', () => ({
-  sessionOptions: { password: 'test-secret', cookieName: 'tsx-session' },
+  getSessionOptions: () => ({ password: 'test-secret', cookieName: 'tsx-session' }),
 }));
 
 // --- Mock iron-session ---

@@ -1,26 +1,26 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import { getSessionOptions } from './session';
 
-describe('session module', () => {
+describe('getSessionOptions', () => {
   afterEach(() => {
-    vi.resetModules();
     vi.unstubAllEnvs();
   });
 
-  it('throws when SESSION_SECRET is missing', async () => {
+  it('throws when SESSION_SECRET is missing', () => {
     vi.stubEnv('SESSION_SECRET', '');
-    await expect(import('./session')).rejects.toThrow('SESSION_SECRET environment variable is required');
+    expect(() => getSessionOptions()).toThrow('SESSION_SECRET environment variable is required');
   });
 
-  it('throws when SESSION_SECRET is shorter than 32 characters', async () => {
+  it('throws when SESSION_SECRET is shorter than 32 characters', () => {
     vi.stubEnv('SESSION_SECRET', 'too-short');
-    await expect(import('./session')).rejects.toThrow('SESSION_SECRET must be at least 32 characters');
+    expect(() => getSessionOptions()).toThrow('SESSION_SECRET must be at least 32 characters');
   });
 
-  it('exports sessionOptions when SESSION_SECRET is valid', async () => {
+  it('returns sessionOptions when SESSION_SECRET is valid', () => {
     vi.stubEnv('SESSION_SECRET', 'a-valid-long-enough-secret-for-iron-session-x');
-    const { sessionOptions } = await import('./session');
-    expect(sessionOptions).toBeDefined();
-    expect(sessionOptions.cookieName).toBe('tsx-session');
-    expect(sessionOptions.password).toBe('a-valid-long-enough-secret-for-iron-session-x');
+    const options = getSessionOptions();
+    expect(options).toBeDefined();
+    expect(options.cookieName).toBe('tsx-session');
+    expect(options.password).toBe('a-valid-long-enough-secret-for-iron-session-x');
   });
 });
