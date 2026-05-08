@@ -7,9 +7,12 @@ type ServersResponse = {
   games: {
     id: string;
     name: string;
+    planet: { color: string; size: number; orbitRadius: number; orbitSpeed: number };
     servers: {
       id: string;
       name: string;
+      host: string;
+      port: number;
       online: boolean;
       players: number | null;
       maxPlayers: number | null;
