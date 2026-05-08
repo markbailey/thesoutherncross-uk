@@ -1,14 +1,16 @@
 import { fileURLToPath } from 'node:url';
 
-const BREAKING_SUBJECT_REGEX = /^[a-zA-Z]+(\(.+\))?!:/m;
-const FEAT_SUBJECT_REGEX = /^feat(\(.+\))?:/m;
+const BREAKING_SUBJECT_REGEX = /^[a-zA-Z]+(\(.+\))?!:/;
+const FEAT_SUBJECT_REGEX = /^feat(\(.+\))?:/;
 
 export function detectBumpType(message) {
-  if (BREAKING_SUBJECT_REGEX.test(message) || message.includes('BREAKING CHANGE:')) {
+  const subject = message.split(/\r?\n/, 1)[0] ?? '';
+
+  if (BREAKING_SUBJECT_REGEX.test(subject) || message.includes('BREAKING CHANGE:')) {
     return 'major';
   }
 
-  if (FEAT_SUBJECT_REGEX.test(message)) {
+  if (FEAT_SUBJECT_REGEX.test(subject)) {
     return 'minor';
   }
 

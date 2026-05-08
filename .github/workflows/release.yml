@@ -35,7 +35,7 @@ jobs:
         id: version
         run: |
           npm version "${{ steps.bump.outputs.type }}" --no-git-tag-version
-          echo "new=$(node -p 'require(\"./package.json\").version')" >> "$GITHUB_OUTPUT"
+          echo "new=$(npm pkg get version | tr -d '\"')" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: npm run build

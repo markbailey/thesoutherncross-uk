@@ -30,4 +30,11 @@ BREAKING CHANGE: response shape changed`;
   it('returns patch for all non-feat and non-breaking commits', () => {
     expect(detectBumpType('fix: handle null cache value')).toBe('patch');
   });
+
+  it('only evaluates the first line for feat/breaking subject markers', () => {
+    const message = `docs: update runbook
+
+feat(ui): mention release badges`;
+    expect(detectBumpType(message)).toBe('patch');
+  });
 });
