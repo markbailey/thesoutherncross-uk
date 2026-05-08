@@ -117,8 +117,8 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
           </button>
         </div>
 
-        {/* Nav links — tabIndex=-1 prevents Tab access when drawer is hidden (belt-and-suspenders alongside visibility:hidden) */}
-        <nav aria-label="Mobile navigation" tabIndex={open ? undefined : -1}>
+        {/* Nav links */}
+        <nav aria-label="Mobile navigation">
           <ul className="nav-drawer__list">
             {NAV_LINKS.map((link) => {
               const isActive = active === link.id;

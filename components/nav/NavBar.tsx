@@ -122,7 +122,7 @@ function NavBarInner({ session }: NavBarProps) {
       <nav
         aria-label="Primary"
         className="site-nav__primary"
-        style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}
+        style={{ gap: 4 }}
       >
         <ul
           className="site-nav__links"
@@ -201,7 +201,6 @@ function NavBarInner({ session }: NavBarProps) {
         className="site-nav__rail"
         style={{
           marginLeft: 16,
-          display: 'flex',
           gap: 10,
           alignItems: 'center',
         }}
@@ -348,20 +347,20 @@ function NavBarInner({ session }: NavBarProps) {
         }
         /* Mobile-first: hamburger visible, inline nav + rail hidden */
         .site-nav__mobile-actions { display: flex; margin-left: auto; }
-        .site-nav__primary { display: none !important; }
-        .site-nav__rail { display: none !important; }
+        .site-nav__primary { display: none; }
+        .site-nav__rail { display: none; }
         /* md+ (768px): inline nav replaces hamburger */
         @media (min-width: 768px) {
-          .site-nav__mobile-actions { display: none !important; }
-          .site-nav__primary { display: flex !important; margin-left: auto; }
+          .site-nav__mobile-actions { display: none; }
+          .site-nav__primary { display: flex; margin-left: auto; }
         }
         /* Rail visible at 880px+ */
         @media (min-width: 880px) {
-          .site-nav__rail { display: flex !important; }
+          .site-nav__rail { display: flex; }
         }
         @media (max-width: 640px) {
           .site-nav__brand .eyebrow { display: none; }
-          .site-nav__brand .display { font-size: 11px !important; letter-spacing: 0.18em !important; }
+          .site-nav__brand .display { font-size: 11px; letter-spacing: 0.18em; }
         }
       `}</style>
     </header>

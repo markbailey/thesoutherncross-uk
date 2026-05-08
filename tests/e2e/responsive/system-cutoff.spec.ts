@@ -45,13 +45,14 @@ test.describe('SystemSection desktop has scene @responsive', () => {
     const section = page.locator('#system');
     await expect(section).toBeVisible();
 
-    // The mobile layout renders the status legend (data-testid="mobile-status-legend")
-    // as a direct sibling of SceneShell inside a padded container. On desktop,
-    // SceneShell renders the 3D scene path and this element must be absent.
+    // Absence: the mobile status legend must not be present at desktop width.
     const mobileStatusLegend = section.locator('[data-testid="mobile-status-legend"]');
     await expect(mobileStatusLegend).toHaveCount(0);
 
-    // canvas assertion skipped — WebGL is not available in headless Chromium,
-    // so we assert absence of mobile-only DOM rather than presence of canvas.
+    // Presence: the desktop-only HUD crumb must be rendered, confirming
+    // SceneShell took the desktop branch rather than rendering nothing.
+    // canvas assertion skipped — WebGL is not available in headless Chromium.
+    const desktopHud = section.locator('[data-testid="desktop-hud-crumb"]');
+    await expect(desktopHud).toHaveCount(1);
   });
 });

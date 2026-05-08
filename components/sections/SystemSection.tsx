@@ -154,8 +154,10 @@ export function SystemSection() {
   const reset = useCameraState((s) => s.reset);
   const deselect = useCameraState((s) => s.deselect);
 
-  // Mobile (<lg): always render ListMode; desktop: respect webgl / listMode flags
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // Mobile (<lg): always render ListMode; desktop: respect webgl / listMode flags.
+  // Default to true (desktop) to avoid a layout jump (CLS) on first render for
+  // desktop visitors — this section was desktop-only before the responsive rebuild.
+  const isDesktop = useMediaQuery('(min-width: 1024px)', true);
   const useFallback = webgl === false || listMode;
 
   // Deep-link restore must run exactly once after `games` first populates;
@@ -303,22 +305,22 @@ function FullBleedLayout({
   // Mobile layout: section header + ListMode in normal flow
   if (!isDesktop) {
     return (
-      <div style={{ padding: '24px 20px 40px' }}>
+      <div className="mobile-system-section">
         {/* Mobile section header */}
-        <div style={{ marginBottom: 24 }}>
+        <div className="mobile-system-header">
           {/* Decorative HUD label — intentional design-system aesthetic */}
-          <div className="eyebrow p" style={{ marginBottom: 6 }}>
+          <div className="eyebrow p mobile-system-header__eyebrow">
             // SERVER HUB
           </div>
-          <div className="display" style={{ fontSize: 22, letterSpacing: '0.18em', color: 'var(--ink)', marginBottom: 4 }}>
+          <div className="display mobile-system-header__title">
             ORBITAL RECON
           </div>
-          <div className="crumb" style={{ fontSize: 10 }}>
+          <div className="crumb mobile-system-header__crumb">
             <span>OPS</span>
             <span className="sep">/</span>
             <b>SYSTEM</b>
             <span className="sep">·</span>
-            <span className="eyebrow g" style={{ fontSize: 9, letterSpacing: '0.24em' }}>
+            <span className="eyebrow g mobile-system-header__worlds">
               {games.length ? `${games.length} WORLDS · LIVE` : 'NO WORLDS'}
             </span>
           </div>
@@ -336,16 +338,7 @@ function FullBleedLayout({
         />
         <div
           data-testid="mobile-status-legend"
-          style={{
-            marginTop: 16,
-            display: 'flex',
-            gap: 16,
-            fontSize: 10,
-            color: 'var(--ink-faint)',
-            letterSpacing: '0.14em',
-            fontFamily: 'var(--mono)',
-            textTransform: 'uppercase',
-          }}
+          className="mobile-system-legend"
         >
           <span><span className="dot on" /> ONLINE</span>
           <span><span className="dot warn" /> LAGGY</span>
@@ -366,8 +359,9 @@ function FullBleedLayout({
         overflow: 'hidden',
       }}
     >
-      {/* Top-left section crumb */}
+      {/* Top-left section crumb — desktop-only HUD chrome */}
       <div
+        data-testid="desktop-hud-crumb"
         style={{
           position: 'absolute',
           top: 24,
