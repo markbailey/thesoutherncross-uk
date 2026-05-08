@@ -105,19 +105,16 @@ redirects the bare apex to `www`, this must be `https://www.thesoutherncross.uk`
 Getting it wrong (e.g. using the bare apex) causes the Steam login callback to
 loop through an IIS redirect and fail verification.
 
-### 6. Extract the deploy bundle, install deps, build
+### 6. Extract the deploy bundle
 
 See section B for how to produce `deploy.zip`. Extract its contents into
-`C:\inetpub\wwwroot\`, then:
+`C:\inetpub\wwwroot\`:
 
 ```powershell
-cd C:\inetpub\wwwroot
-npm ci --include=dev
-npm run build
+& C:\Windows\System32\tar.exe -xf C:\deploy\deploy.zip -C C:\inetpub\wwwroot
 ```
 
-`--include=dev` is required because `tsx` is a devDependency and the service
-runs `tsx server.ts` from `node_modules\tsx\dist\cli.mjs`.
+The bundle is pre-built — no `npm ci` or `npm run build` needed on the server.
 
 ### 7. Install the Windows Service
 
@@ -210,9 +207,10 @@ regardless of PowerShell execution policy). Pass a custom path if needed:
 node scripts/build-zip.mjs C:\drop\deploy.zip
 ```
 
-`deploy.zip` contains source + `package.json` + `package-lock.json` +
-`web.config` + `scripts\` but not `node_modules`, `.next`, `.env`, or
-`data/*.sqlite`. The remote box runs `npm ci` and `npm run build` itself.
+`deploy.zip` contains pre-built standalone output (compiled server + minimal
+`node_modules` + `.next` static + `public`) + `scripts\` + `web.config` +
+`.env.example` — no source files, no build step needed on the server. Run
+`npm run build` before `npm run build:zip` to produce the standalone output.
 
 ### 3. Transfer to the remote box
 
@@ -221,7 +219,7 @@ RDP clipboard, shared folder, or any file copy tool of choice.
 ### 4. Deploy on the remote box
 
 **Run all of step 4 in one PowerShell session.** `$ts` and `$prev` are set
-in 4a and reused in 4c, 4d, 4f, and 4g.
+in 4a and reused in 4c, 4d, 4e, and 4f.
 
 #### 4a. Set rollback markers
 
@@ -258,15 +256,7 @@ if (Test-Path "$prev\data") {
 }
 ```
 
-#### 4e. Install + build
-
-```powershell
-cd C:\inetpub\wwwroot
-npm ci --include=dev
-npm run build
-```
-
-#### 4f. Start the service + smoke test
+#### 4e. Start the service + smoke test
 
 ```powershell
 nssm start TheSouthernCrossUK
@@ -276,7 +266,7 @@ Invoke-WebRequest https://www.thesoutherncross.uk/api/health -UseBasicParsing | 
 
 Expect `200` + `"ok":true`. If false:
 
-#### 4g. Rollback (only if 4f failed)
+#### 4f. Rollback (only if 4e failed)
 
 ```powershell
 nssm stop TheSouthernCrossUK

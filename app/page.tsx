@@ -7,12 +7,12 @@ import { SystemSection } from '../components/sections/SystemSection';
 import { MembersSection } from '../components/sections/MembersSection';
 import { JoinSection } from '../components/sections/JoinSection';
 import { Footer } from '../components/sections/Footer';
-import { sessionOptions, type SessionData } from '../lib/auth/session';
+import { getSessionOptions, type SessionData } from '../lib/auth/session';
 import { isAdmin } from '../lib/auth/roles';
 import type { NavBarSession } from '../components/nav/NavBar';
 
 export default async function Page() {
-  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+  const session = await getIronSession<SessionData>(await cookies(), getSessionOptions());
 
   const navSession: NavBarSession = session.steamid
     ? {

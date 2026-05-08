@@ -6,11 +6,10 @@
 #   3. Renames the current site root to wwwroot-prev-<ts> (rollback target)
 #   4. Moves staging into place as the new site root
 #   5. Restores .env, web.config, and data\ from snapshot; validates required env keys
-#   6. Runs `npm ci --include=dev` and `npm run build`
-#   7. Runs install-service.ps1 (idempotent: registers or refreshes env)
-#   8. Starts the service and polls /api/health for up to 60s
-#   9. Auto-rolls back on smoke-test failure (unless -SkipRollback)
-#  10. Prunes wwwroot-prev-* snapshots older than -PruneOlderThanDays days
+#   6. Runs install-service.ps1 (idempotent: registers or refreshes env)
+#   7. Starts the service and polls /api/health for up to 60s
+#   8. Auto-rolls back on smoke-test failure (unless -SkipRollback)
+#   9. Prunes wwwroot-prev-* snapshots older than -PruneOlderThanDays days
 #
 # This script ships INSIDE deploy.zip at scripts\deploy.ps1. It self-extracts
 # the bundle to TEMP first, so it is safe to invoke the on-box copy at
@@ -99,7 +98,7 @@ if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 & $tar -xf $ZipPath -C $staging
 if ($LASTEXITCODE -ne 0)                                { Die "tar extraction failed (exit $LASTEXITCODE)" }
-if (-not (Test-Path (Join-Path $staging 'package.json'))) { Die "Bundle missing package.json - wrong zip?" }
+if (-not (Test-Path (Join-Path $staging 'server.js'))) { Die "Bundle missing server.js - wrong zip?" }
 Ok "Extracted"
 
 # --- stop service + kill lingering node ------------------------------------
@@ -121,7 +120,7 @@ if ($serviceExists) {
 
 # Scope kill to processes whose command line or executable path references
 # $SiteRoot to avoid taking down unrelated Node services on a shared host.
-$lingering = Get-Process node, tsx -ErrorAction SilentlyContinue |
+$lingering = Get-Process node -ErrorAction SilentlyContinue |
     Where-Object {
         $wmi = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue
         $wmi -and
@@ -129,7 +128,7 @@ $lingering = Get-Process node, tsx -ErrorAction SilentlyContinue |
              ($wmi.ExecutablePath -and $wmi.ExecutablePath.StartsWith($SiteRoot, [System.StringComparison]::OrdinalIgnoreCase)))
     }
 if ($lingering) {
-    Note "Killing lingering node/tsx pids scoped to ${SiteRoot}: $($lingering.Id -join ', ')"
+    Note "Killing lingering node pids scoped to ${SiteRoot}: $($lingering.Id -join ', ')"
     $lingering | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 1
 }
@@ -233,24 +232,6 @@ try {
 } catch {
     if (-not $SkipRollback) { Invoke-Rollback }
     Die "Failed to restore stateful files: $_"
-}
-
-# --- npm ci + build (rollback on failure) ----------------------------------
-
-Push-Location $SiteRoot
-$buildOk = $false
-try {
-    Step "npm ci --include=dev"
-    & npm ci --include=dev
-    if ($LASTEXITCODE -ne 0) { Die "npm ci failed (exit $LASTEXITCODE)" }
-
-    Step "npm run build"
-    & npm run build
-    if ($LASTEXITCODE -ne 0) { Die "npm run build failed (exit $LASTEXITCODE)" }
-    $buildOk = $true
-} finally {
-    Pop-Location
-    if (-not $buildOk -and -not $SkipRollback) { Invoke-Rollback }
 }
 
 # --- register / refresh service env from .env ------------------------------
