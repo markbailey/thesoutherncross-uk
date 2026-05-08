@@ -171,5 +171,3 @@ class SceneErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-
-export default SceneShell;

@@ -154,5 +154,3 @@ export function NavDrawer({ open, onClose }: NavDrawerProps) {
     </>
   );
 }
-
-export default NavDrawer;

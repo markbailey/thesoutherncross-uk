@@ -71,5 +71,3 @@ export function NavToggle({ open, onToggle }: NavToggleProps) {
     </button>
   );
 }
-
-export default NavToggle;
