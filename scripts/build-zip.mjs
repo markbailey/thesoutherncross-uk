@@ -9,6 +9,11 @@ const tar        = 'C:\\Windows\\System32\\tar.exe';
 const standalone = resolve(root, '.next', 'standalone');
 const outPath    = process.argv[2] ?? resolve(root, 'deploy.zip');
 
+if (!existsSync(tar)) {
+  console.error(`ERROR: tar not found at ${tar}`);
+  process.exit(1);
+}
+
 if (!existsSync(standalone)) {
   console.error('ERROR: .next/standalone not found — run `npm run build` first.');
   process.exit(1);
@@ -31,7 +36,7 @@ function patchImports(dir) {
     } else if (entry.isFile() && entry.name.endsWith('.js')) {
       const src = readFileSync(full, 'utf8');
       const patched = src.replace(
-        /(\bfrom\s+)(["'])(\.\.?\/[^"']+)\2/g,
+        /(\b(?:from|import)\s+)(["'])(\.\.?\/[^"']+)\2/g,
         (match, keyword, quote, importPath) => {
           if (extname(importPath)) return match;
           return `${keyword}${quote}${importPath}.js${quote}`;
@@ -46,12 +51,18 @@ patchImports(standalone);
 console.log('==> Copying .next/static/');
 const staticSrc = resolve(root, '.next', 'static');
 const staticDst = resolve(standalone, '.next', 'static');
-if (existsSync(staticSrc)) cpSync(staticSrc, staticDst, { recursive: true });
+if (existsSync(staticSrc)) {
+  if (existsSync(staticDst)) rmSync(staticDst, { recursive: true, force: true });
+  cpSync(staticSrc, staticDst, { recursive: true });
+}
 
 console.log('==> Copying public/');
 const publicSrc = resolve(root, 'public');
 const publicDst = resolve(standalone, 'public');
-if (existsSync(publicSrc)) cpSync(publicSrc, publicDst, { recursive: true });
+if (existsSync(publicSrc)) {
+  if (existsSync(publicDst)) rmSync(publicDst, { recursive: true, force: true });
+  cpSync(publicSrc, publicDst, { recursive: true });
+}
 
 const ts      = Date.now();
 const staging = join(tmpdir(), `thesoutherncross-staging-${ts}`);
@@ -68,17 +79,19 @@ for (const item of ['scripts', 'web.config', '.env.example', 'data']) {
 
 if (existsSync(outPath)) unlinkSync(outPath);
 console.log(`==> Building deploy.zip\n    Root:   ${staging}\n    Output: ${outPath}`);
-execFileSync(tar, [
-  '-acf', outPath,
-  '-C', staging,
-  '--exclude', '*.sqlite',
-  '--exclude', '*.sqlite-*',
-  '--exclude', '*.tsbuildinfo',
-  '--exclude', 'scripts/build-zip.mjs',
-  '.',
-], { stdio: 'inherit' });
-
-rmSync(staging, { recursive: true, force: true });
+try {
+  execFileSync(tar, [
+    '-acf', outPath,
+    '-C', staging,
+    '--exclude', '*.sqlite',
+    '--exclude', '*.sqlite-*',
+    '--exclude', '*.tsbuildinfo',
+    '--exclude', 'scripts/build-zip.mjs',
+    '.',
+  ], { stdio: 'inherit' });
+} finally {
+  rmSync(staging, { recursive: true, force: true });
+}
 
 const sizeMb = (statSync(outPath).size / 1024 / 1024).toFixed(1);
 console.log(`    Done: ${sizeMb} MB  ->  ${outPath}`);
