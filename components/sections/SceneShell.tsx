@@ -41,47 +41,42 @@ type SceneGame = {
   }>;
 };
 
-export interface SceneShellProps {
+/** Props for the mobile render path — only `games` is needed. */
+type SceneShellMobileProps = {
+  isDesktop: false;
+  games: OverlayGame[];
+};
+
+/** Props for the desktop render path — full scene data required. */
+type SceneShellDesktopProps = {
+  isDesktop: true;
   games: OverlayGame[];
   sceneGames: SceneGame[];
   webgl: boolean | null;
   useFallback: boolean;
   onErrorBoundary: () => void;
-  /**
-   * Only used in the desktop (isDesktop=true) render path. Required by the
-   * interface so callers are consistent; the mobile branch passes them through
-   * to the prop bag but does not consume them.
-   */
   loading: boolean;
-  /** @see loading */
   error: boolean;
   focusedGameId: string | null;
-  /** Passed from SystemSection; drives the mobile/desktop branch. */
-  isDesktop: boolean;
-}
+};
+
+export type SceneShellProps = SceneShellMobileProps | SceneShellDesktopProps;
 
 /**
  * Chooses between the mobile list layout (<lg) and the full 3D scene (lg+).
  */
-export function SceneShell({
-  games,
-  sceneGames,
-  webgl,
-  useFallback,
-  onErrorBoundary,
-  loading,
-  error,
-  focusedGameId,
-  isDesktop,
-}: SceneShellProps) {
+export function SceneShell(props: SceneShellProps) {
   // Mobile (<lg): always render ListMode — no 3D, no R3F download
-  if (!isDesktop) {
+  if (!props.isDesktop) {
     return (
       <div className={styles.mobileList}>
-        <ListMode games={games} />
+        <ListMode games={props.games} />
       </div>
     );
   }
+
+  const { games, sceneGames, webgl, useFallback, onErrorBoundary, loading, error, focusedGameId } =
+    props;
 
   // Desktop (lg+): existing WebGL-gated scene logic
   if (webgl === null) {

@@ -385,6 +385,36 @@ body {
   }
 }
 
+/* ── NavBar breakpoints ────────────────────────────────────────────── */
+/* Interaction styles */
+.site-nav__link:hover { color: var(--ink); }
+.site-nav__link.nav-active { color: var(--royal-green-neon); }
+.site-nav__link:focus-visible,
+.site-nav__brand:focus-visible {
+  outline: 2px solid var(--royal-green-neon);
+  outline-offset: 2px;
+}
+/* Mobile-first: hamburger visible, inline nav + rail hidden */
+.site-nav__mobile-actions { display: flex; margin-left: auto; }
+.site-nav__primary { display: none; }
+.site-nav__rail { display: none; }
+/* md+ (768px): inline nav replaces hamburger */
+@media (min-width: 768px) {
+  .site-nav__mobile-actions { display: none; }
+  .site-nav__primary { display: flex; margin-left: auto; }
+}
+/* Rail visible at 880px+ */
+@media (min-width: 880px) {
+  .site-nav__rail { display: flex; }
+}
+/* xs (<640px): hide eyebrow tagline in brand; shrink brand text */
+.site-nav__brand .eyebrow { display: none; }
+.site-nav__brand .display { font-size: 11px; letter-spacing: 0.18em; }
+@media (min-width: 640px) {
+  .site-nav__brand .eyebrow { display: revert; }
+  .site-nav__brand .display { font-size: revert; letter-spacing: revert; }
+}
+
 /* ── NavDrawer — right-side mobile navigation ─────────────────────── */
 .nav-drawer-backdrop {
   position: fixed;
@@ -646,40 +676,42 @@ body {
 }
 
 /* ── MemberModal responsive ───────────────────────────────────────── */
-/* Base layout pulled from inline style props so @media can override without
-   needing !important. */
+/* Mobile-first: full-screen panel; desktop (md+) constrains to max-width. */
 .member-modal-overlay {
-  padding: 3rem 1.5rem;
-  align-items: flex-start;
+  padding: 0;
+  align-items: stretch;
 }
 .member-modal-panel {
-  max-width: 57.5rem; /* 920px */
+  max-width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 .member-modal-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  display: block;
 }
 .member-modal-detail {
-  border-right: 1px solid var(--hair);
+  border-right: none;
+  border-bottom: 1px solid var(--hair);
 }
-@media (max-width: 767px) {
+/* md+ (768px): constrain panel, switch to side-by-side grid layout */
+@media (min-width: 768px) {
   .member-modal-overlay {
-    padding: 0;
-    align-items: stretch;
+    padding: 3rem 1.5rem;
+    align-items: flex-start;
   }
   .member-modal-panel {
-    max-width: 100%;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-  }
-  /* Mobile path uses flex (column) inherited from panel; reset grid here */
-  .member-modal-body {
+    max-width: 57.5rem; /* 920px */
+    min-height: 0;
     display: block;
   }
+  .member-modal-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
   .member-modal-detail {
-    border-right: none;
-    border-bottom: 1px solid var(--hair);
+    border-right: 1px solid var(--hair);
+    border-bottom: none;
   }
 }
 

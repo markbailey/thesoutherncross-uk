@@ -5,6 +5,7 @@ import { AstronautAvatar } from './AstronautAvatar';
 import { deriveHue, formatRelative, type MemberCardMember } from './MemberCard';
 import type { MemberRole } from '../../lib/member-roles';
 import { GUILD } from '../../config/guild';
+import { lockScroll } from '../../lib/scrollLock';
 
 const FOUNDER_ACCENT = '#f2b53b';
 
@@ -83,11 +84,10 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
       }
     };
     window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockScroll = lockScroll();
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       // Restore focus to whatever owned it before the modal opened.
       if (
         previouslyFocused instanceof HTMLElement &&
@@ -455,7 +455,7 @@ function ModalHeader({
           type="button"
           onClick={onClose}
           className="hud-btn"
-          aria-label="Close"
+          aria-label="Close member profile"
           style={{
             position: 'absolute',
             top: 0,

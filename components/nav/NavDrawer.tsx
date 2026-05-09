@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useActiveSection } from './useActiveSection';
 import { SECTION_IDS, NAV_LINKS } from './navLinks';
+import { lockScroll } from '../../lib/scrollLock';
 
 export interface NavDrawerProps {
   open: boolean;
@@ -69,11 +70,7 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
   // Body scroll lock when drawer is open
   React.useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockScroll();
   }, [open]);
 
   const handleLinkClick = (id: string) => {

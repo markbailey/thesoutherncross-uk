@@ -243,6 +243,7 @@ function ScrollCue() {
         letterSpacing: '0.3em',
         textTransform: 'uppercase',
         padding: '10px 18px',
+        minHeight: 44,
         cursor: 'pointer',
         clipPath:
           'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)',

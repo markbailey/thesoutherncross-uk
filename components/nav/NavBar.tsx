@@ -336,33 +336,6 @@ function NavBarInner({ session }: NavBarProps) {
       <div className="site-nav__mobile-actions">
         <NavToggle ref={toggleRef} open={drawerOpen} onToggle={() => setDrawerOpen((v) => !v)} />
       </div>
-
-      <style>{`
-        .site-nav__link:hover { color: var(--ink); }
-        .site-nav__link.nav-active { color: var(--royal-green-neon); }
-        .site-nav__link:focus-visible,
-        .site-nav__brand:focus-visible {
-          outline: 2px solid var(--royal-green-neon);
-          outline-offset: 2px;
-        }
-        /* Mobile-first: hamburger visible, inline nav + rail hidden */
-        .site-nav__mobile-actions { display: flex; margin-left: auto; }
-        .site-nav__primary { display: none; }
-        .site-nav__rail { display: none; }
-        /* md+ (768px): inline nav replaces hamburger */
-        @media (min-width: 768px) {
-          .site-nav__mobile-actions { display: none; }
-          .site-nav__primary { display: flex; margin-left: auto; }
-        }
-        /* Rail visible at 880px+ */
-        @media (min-width: 880px) {
-          .site-nav__rail { display: flex; }
-        }
-        @media (max-width: 640px) {
-          .site-nav__brand .eyebrow { display: none; }
-          .site-nav__brand .display { font-size: 11px; letter-spacing: 0.18em; }
-        }
-      `}</style>
     </header>
 
     {/* Mobile drawer — rendered outside header to avoid stacking-context issues */}

@@ -327,13 +327,6 @@ function FullBleedLayout({
         </div>
         <SceneShell
           games={games}
-          sceneGames={sceneGames}
-          webgl={webgl}
-          useFallback={useFallback}
-          onErrorBoundary={onErrorBoundary}
-          loading={loading}
-          error={error}
-          focusedGameId={focusedGameId}
           isDesktop={false}
         />
         <div
