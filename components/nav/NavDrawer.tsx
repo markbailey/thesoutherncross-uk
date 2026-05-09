@@ -31,11 +31,11 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
       // Defer so the drawer CSS transition has started before stealing focus.
       // requestAnimationFrame is used rather than setTimeout(50) for more robust
       // timing across slow devices.
-      let raf: number;
+      let raf2: number;
       const raf1 = requestAnimationFrame(() => {
-        raf = requestAnimationFrame(() => closeRef.current?.focus());
+        raf2 = requestAnimationFrame(() => closeRef.current?.focus());
       });
-      return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf); };
+      return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
     }
     if (wasOpen.current) {
       wasOpen.current = false;

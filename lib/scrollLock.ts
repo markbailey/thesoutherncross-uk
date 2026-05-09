@@ -21,13 +21,10 @@
 let lockCount = 0;
 let savedOverflow = '';
 
-// Escape hatch: release any stale lock on next module evaluation (HMR / route change).
+// Escape hatch: on next module evaluation (e.g. after HMR or crash-reload),
+// if lockCount is 0 and body is still scroll-locked, clear the stale lock.
 if (typeof document !== 'undefined' && document.body.style.overflow === 'hidden') {
-  // Only reset when there are no active lock holders (e.g. after a crash-then-reload).
-  // If lockCount is 0 but body is still hidden, restore it safely.
-  if (lockCount === 0) {
-    document.body.style.overflow = '';
-  }
+  document.body.style.overflow = '';
 }
 
 /**
