@@ -1,10 +1,6 @@
 .mobileList {
-  /* pb-8 (2rem) is intentionally larger than the other sides (1.25rem) to
-     provide scroll breathing-room below the last game card on mobile. */
-  padding-bottom: 2rem;
-  padding-left: 1.25rem;  /* 20px */
-  padding-right: 1.25rem;
-  padding-top: 1.25rem;
+  /* top/sides: 1.25rem; bottom: 2rem (extra breathing room below last game card) */
+  padding: 1.25rem 1.25rem 2rem;
   min-height: 50vh;
 }
 

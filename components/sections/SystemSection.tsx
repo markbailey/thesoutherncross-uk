@@ -503,41 +503,6 @@ function FullBleedLayout({
             pointerEvents: 'auto',
           }}
         >
-          <style>{`
-            input.s3-zoom {
-              -webkit-appearance: none;
-              appearance: none;
-              width: 120px;
-              height: 14px;
-              background: transparent;
-              cursor: pointer;
-            }
-            input.s3-zoom::-webkit-slider-runnable-track {
-              height: 1px;
-              background: var(--hair);
-            }
-            input.s3-zoom::-moz-range-track {
-              height: 1px;
-              background: var(--hair);
-            }
-            input.s3-zoom::-webkit-slider-thumb {
-              -webkit-appearance: none;
-              appearance: none;
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background: var(--royal-green-neon);
-              border: none;
-              margin-top: -3.5px;
-            }
-            input.s3-zoom::-moz-range-thumb {
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background: var(--royal-green-neon);
-              border: none;
-            }
-          `}</style>
           <span
             style={{
               fontSize: 9,

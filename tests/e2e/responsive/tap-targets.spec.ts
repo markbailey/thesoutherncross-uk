@@ -46,9 +46,8 @@ test.describe('tap targets @ 390px @responsive', () => {
     expect(count).toBeGreaterThan(0);
     for (let i = 0; i < count; i++) {
       const box = await ctaLinks.nth(i).boundingBox();
-      if (box) {
-        expect(box.height).toBeGreaterThanOrEqual(MIN_TAP);
-      }
+      expect(box).not.toBeNull();
+      expect(box!.height).toBeGreaterThanOrEqual(MIN_TAP);
     }
   });
 });

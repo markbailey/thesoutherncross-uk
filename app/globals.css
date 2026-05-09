@@ -769,3 +769,59 @@ body {
     animation: none !important;
   }
 }
+
+/* ── MembersSection animations ────────────────────────────────────── */
+/* Highlight pulse — triggered by data-highlight="true" on the card */
+[data-steamid][data-highlight="true"] {
+  animation: member-pulse 2s ease-out forwards;
+}
+@keyframes member-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(57,255,136,0.7); }
+  60%  { box-shadow: 0 0 0 8px rgba(57,255,136,0); }
+  100% { box-shadow: 0 0 0 0 rgba(57,255,136,0); }
+}
+/* Skeleton shimmer */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.7; }
+}
+.member-skeleton {
+  height: 92px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+/* ── SystemSection zoom slider ────────────────────────────────────── */
+/* Custom range-input track/thumb for the s3-zoom control */
+input.s3-zoom {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+input.s3-zoom::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--hair);
+}
+input.s3-zoom::-moz-range-track {
+  height: 1px;
+  background: var(--hair);
+}
+input.s3-zoom::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--royal-green-neon);
+  border: none;
+  margin-top: -3.5px;
+}
+input.s3-zoom::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--royal-green-neon);
+  border: none;
+}

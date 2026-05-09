@@ -22,13 +22,23 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
   const drawerRef = React.useRef<HTMLDivElement>(null);
   const closeRef = React.useRef<HTMLButtonElement>(null);
 
-  // Focus the close button when drawer opens; return focus to trigger on close.
+  // Focus the close button when drawer opens; return focus to trigger on true→false transition.
+  // `wasOpen` ref prevents focus from being stolen on the initial mount (when `open=false`).
+  const wasOpen = React.useRef(false);
   React.useEffect(() => {
     if (open) {
-      // Defer slightly so the drawer CSS transition has started
-      const t = setTimeout(() => closeRef.current?.focus(), 50);
-      return () => clearTimeout(t);
-    } else {
+      wasOpen.current = true;
+      // Defer so the drawer CSS transition has started before stealing focus.
+      // requestAnimationFrame is used rather than setTimeout(50) for more robust
+      // timing across slow devices.
+      let raf: number;
+      const raf1 = requestAnimationFrame(() => {
+        raf = requestAnimationFrame(() => closeRef.current?.focus());
+      });
+      return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf); };
+    }
+    if (wasOpen.current) {
+      wasOpen.current = false;
       triggerRef?.current?.focus();
     }
   }, [open, triggerRef]);
@@ -45,7 +55,7 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
       const root = drawerRef.current;
       if (!root) return;
       const focusables = root.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
       );
       if (focusables.length === 0) return;
       const first = focusables[0];

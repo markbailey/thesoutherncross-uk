@@ -1,5 +1,12 @@
 .toggle {
-  @apply flex flex-col items-center justify-center bg-transparent cursor-pointer flex-shrink-0 p-0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
   gap: 0.3125rem; /* 5px */
   width: 2.75rem;  /* 44px */
   height: 2.75rem; /* 44px */
@@ -12,7 +19,7 @@
 }
 
 .bar {
-  @apply block;
+  display: block;
   width: 1.125rem; /* 18px */
   height: 1px;
   background: var(--royal-green-neon);

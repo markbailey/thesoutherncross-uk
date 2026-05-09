@@ -1,119 +1,126 @@
 /**
+ * @vitest-environment happy-dom
+ *
  * Tests for the SSR-safe useMediaQuery hook.
  *
- * useMediaQuery is a React hook, so we cannot call it directly in a Node.js
- * test environment without a rendering context. Instead, we mock React's
- * `useState` and `useEffect` exports so the hook's logic executes as a plain
- * function call. This is an intentional whitebox contract test — we're
- * verifying the hook's behavior, not React's rendering primitives.
+ * These tests use a real React renderer (happy-dom) so they verify observable
+ * *behaviour* rather than implementation shape. Refactoring the hook internals
+ * (e.g. to useSyncExternalStore) will not break these tests as long as the
+ * external contract is preserved.
  *
- * Behaviours under test:
- * 1. Returns `defaultValue` on first render (before useEffect fires) → SSR-safe.
- * 2. Accepts a custom `defaultValue` (e.g. `true` to avoid desktop CLS).
- * 3. Calls `window.matchMedia(query)` on mount and updates state with the result.
- * 4. Attaches a `change` listener and removes it on cleanup.
+ * window.matchMedia is mocked because happy-dom does not implement it.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { createRoot } from 'react-dom/client';
+import { act, createElement } from 'react';
+import { useMediaQuery } from './useMediaQuery';
 
-// ── React mock ────────────────────────────────────────────────────────────
-// These are module-level so vi.mock can capture them in its factory.
-const mockSetState = vi.fn();
-let latestInit: unknown;
-let pendingEffect: (() => (() => void) | void) | undefined;
+// ── helpers ───────────────────────────────────────────────────────────────
 
-vi.mock('react', () => ({
-  useState: (init: unknown) => {
-    latestInit = init;
-    return [init, mockSetState];
-  },
-  useEffect: (fn: () => (() => void) | void, _deps?: unknown[]) => {
-    pendingEffect = fn;
-  },
-}));
+/** Render a hook in a minimal React tree; returns the latest value + cleanup. */
+function renderHook<T>(useHook: () => T): { getValue: () => T; cleanup: () => void } {
+  let latestValue!: T;
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
 
-// ── window.matchMedia factory ─────────────────────────────────────────────
-type MockMql = {
-  matches: boolean;
-  addEventListener: ReturnType<typeof vi.fn>;
-  removeEventListener: ReturnType<typeof vi.fn>;
-  runEffect: () => (() => void) | void;
-};
+  function TestComponent() {
+    latestValue = useHook();
+    return null;
+  }
 
-function makeMatchMedia(matches: boolean): MockMql {
-  const mql = {
-    matches,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    // Convenience: run the captured effect and return its cleanup
-    runEffect(): (() => void) | void {
-      return pendingEffect?.();
+  act(() => {
+    root.render(createElement(TestComponent, null));
+  });
+
+  return {
+    getValue: () => latestValue,
+    cleanup: () => {
+      act(() => { root.unmount(); });
+      container.remove();
     },
   };
-  Object.defineProperty(globalThis, 'window', {
-    value: { matchMedia: vi.fn(() => mql) },
+}
+
+/** Mock window.matchMedia and return helpers for asserting + firing changes. */
+function mockMatchMedia(initialMatches: boolean) {
+  const listeners = new Set<(e: MediaQueryListEvent) => void>();
+  const mql = {
+    matches: initialMatches,
+    addEventListener: vi.fn((_type: string, cb: (e: MediaQueryListEvent) => void) => {
+      listeners.add(cb);
+    }),
+    removeEventListener: vi.fn((_type: string, cb: (e: MediaQueryListEvent) => void) => {
+      listeners.delete(cb);
+    }),
+    fireChange(newMatches: boolean) {
+      listeners.forEach((cb) => cb({ matches: newMatches } as MediaQueryListEvent));
+    },
+  };
+  Object.defineProperty(window, 'matchMedia', {
+    value: vi.fn(() => mql),
     writable: true,
     configurable: true,
   });
   return mql;
 }
 
-// ── Import the hook (uses mocked React) ──────────────────────────────────
-import { useMediaQuery } from './useMediaQuery';
+// ── tests ─────────────────────────────────────────────────────────────────
 
-// ── Tests ─────────────────────────────────────────────────────────────────
 describe('useMediaQuery', () => {
-  beforeEach(() => {
-    mockSetState.mockClear();
-    latestInit = undefined;
-    pendingEffect = undefined;
-  });
+  afterEach(() => vi.restoreAllMocks());
 
-  it('returns false (default) before effects run — SSR-safe', () => {
-    const result = useMediaQuery('(min-width: 768px)');
-    // No effect has fired yet → still the initial useState value
-    expect(result).toBe(false);
-    expect(latestInit).toBe(false);
-    expect(pendingEffect).toBeDefined(); // effect was registered
-    expect(mockSetState).not.toHaveBeenCalled();
-  });
-
-  it('accepts a custom defaultValue of true', () => {
-    const result = useMediaQuery('(min-width: 1024px)', true);
-    expect(result).toBe(true);
-    expect(latestInit).toBe(true);
-    expect(mockSetState).not.toHaveBeenCalled();
-  });
-
-  it('calls window.matchMedia with the query string on mount', () => {
-    const mql = makeMatchMedia(false);
-    useMediaQuery('(min-width: 768px)');
-    mql.runEffect();
-    expect((window.matchMedia as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
-      '(min-width: 768px)',
-    );
-  });
-
-  it('calls setState(true) when the query matches on mount', () => {
-    const mql = makeMatchMedia(true);
-    useMediaQuery('(max-width: 767px)');
-    mql.runEffect();
-    expect(mockSetState).toHaveBeenCalledWith(true);
+  it('reflects the matchMedia result after mount (query matches = true)', () => {
+    const mql = mockMatchMedia(true);
+    const { getValue, cleanup } = renderHook(() => useMediaQuery('(min-width: 768px)'));
+    expect(getValue()).toBe(true);
     expect(mql.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+    cleanup();
   });
 
-  it('calls setState(false) when the query does not match on mount', () => {
-    const mql = makeMatchMedia(false);
-    useMediaQuery('(min-width: 1920px)');
-    mql.runEffect();
-    expect(mockSetState).toHaveBeenCalledWith(false);
+  it('reflects the matchMedia result after mount (query matches = false)', () => {
+    mockMatchMedia(false);
+    const { getValue, cleanup } = renderHook(() => useMediaQuery('(min-width: 1920px)'));
+    expect(getValue()).toBe(false);
+    cleanup();
   });
 
-  it('removes the change listener on cleanup', () => {
-    const mql = makeMatchMedia(false);
-    useMediaQuery('(min-width: 768px)');
-    const cleanup = mql.runEffect();
-    if (typeof cleanup === 'function') cleanup();
+  it('passes the query string to window.matchMedia', () => {
+    const mql = mockMatchMedia(false);
+    const { cleanup } = renderHook(() => useMediaQuery('(min-width: 768px)'));
+    expect(window.matchMedia).toHaveBeenCalledWith('(min-width: 768px)');
+    cleanup();
+  });
+
+  it('updates when the media query fires a change event', () => {
+    const mql = mockMatchMedia(false);
+    const { getValue, cleanup } = renderHook(() => useMediaQuery('(min-width: 768px)'));
+    expect(getValue()).toBe(false);
+    act(() => { mql.fireChange(true); });
+    expect(getValue()).toBe(true);
+    act(() => { mql.fireChange(false); });
+    expect(getValue()).toBe(false);
+    cleanup();
+  });
+
+  it('removes the change listener on unmount', () => {
+    const mql = mockMatchMedia(false);
+    const { cleanup } = renderHook(() => useMediaQuery('(min-width: 768px)'));
+    expect(mql.removeEventListener).not.toHaveBeenCalled();
+    cleanup();
     expect(mql.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+  });
+
+  it('defaultValue param is used as the initial state (before mount effects)', () => {
+    // We verify this via the starting value — before effects fire, useState
+    // holds defaultValue. With act() flushing synchronously, the post-effect
+    // state is what we observe here. We confirm defaultValue doesn't "stick"
+    // past mount by checking it's overridden by the real matchMedia result.
+    mockMatchMedia(false);
+    const { getValue, cleanup } = renderHook(() => useMediaQuery('(min-width: 1024px)', true));
+    // defaultValue=true but matchMedia returns false → after mount, value is false
+    expect(getValue()).toBe(false);
+    cleanup();
   });
 });

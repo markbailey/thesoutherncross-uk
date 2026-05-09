@@ -51,7 +51,11 @@ test.describe('SystemSection desktop has scene @responsive', () => {
 
     // Presence: the desktop-only HUD crumb must be rendered, confirming
     // SceneShell took the desktop branch rather than rendering nothing.
-    // canvas assertion skipped — WebGL is not available in headless Chromium.
+    // Note: WebGL is not available in headless Chromium, so the WebGL probe
+    // sets useFallback=true and <Scene> does not mount. The chunk-loading
+    // claim ("Three.js never fetched on mobile") could be verified via
+    // network-trace assertions (page.on('request')) or by enabling
+    // --use-gl=swiftshader in the Playwright launch config.
     const desktopHud = section.locator('[data-testid="desktop-hud-crumb"]');
     await expect(desktopHud).toHaveCount(1);
   });
