@@ -224,7 +224,6 @@ function renderTagline(tagline: string): React.ReactNode {
 
 function ScrollCue() {
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
     if (typeof document === 'undefined') return;
     const el = document.getElementById('system');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });

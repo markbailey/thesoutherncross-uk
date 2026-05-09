@@ -29,7 +29,7 @@ const HudOverlay = dynamic(
   { ssr: false },
 );
 
-type SceneGame = {
+export type SceneGame = {
   id: string;
   planet: { color: string; size: number; orbitRadius: number; orbitSpeed: number };
   servers: Array<{

@@ -31,7 +31,7 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
       // Defer so the drawer CSS transition has started before stealing focus.
       // requestAnimationFrame is used rather than setTimeout(50) for more robust
       // timing across slow devices.
-      let raf2: number;
+      let raf2 = 0;
       const raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => closeRef.current?.focus());
       });
@@ -108,7 +108,6 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        aria-hidden={!open}
         inert={!open || undefined}
         className={`nav-drawer${open ? ' nav-drawer--open' : ''}`}
       >

@@ -8,6 +8,8 @@ import { mockApi } from '../../lib/mockApi';
 import { freezeScene } from '../../lib/freezeScene';
 
 const MIN_TAP = 44;
+/** WCAG 2.5.8 AA minimum (24px); contrast with MIN_TAP = 44 (WCAG 2.5.5 AAA). */
+const MIN_TAP_AA = 24;
 
 test.describe('tap targets @ 390px @responsive', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -35,7 +37,7 @@ test.describe('tap targets @ 390px @responsive', () => {
     // rendering contexts. Asserting the WCAG 2.5.8 AA minimum of 24px here;
     // the surrounding padding provides a sufficient touch surface in practice.
     // Reference: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum
-    expect(box!.height).toBeGreaterThanOrEqual(24);
+    expect(box!.height).toBeGreaterThanOrEqual(MIN_TAP_AA);
   });
 
   test('join CTAs meet 44-height in CTA row @responsive', async ({ page }) => {

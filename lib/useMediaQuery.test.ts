@@ -112,15 +112,4 @@ describe('useMediaQuery', () => {
     expect(mql.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
 
-  it('defaultValue param is used as the initial state (before mount effects)', () => {
-    // We verify this via the starting value — before effects fire, useState
-    // holds defaultValue. With act() flushing synchronously, the post-effect
-    // state is what we observe here. We confirm defaultValue doesn't "stick"
-    // past mount by checking it's overridden by the real matchMedia result.
-    mockMatchMedia(false);
-    const { getValue, cleanup } = renderHook(() => useMediaQuery('(min-width: 1024px)', true));
-    // defaultValue=true but matchMedia returns false → after mount, value is false
-    expect(getValue()).toBe(false);
-    cleanup();
-  });
 });

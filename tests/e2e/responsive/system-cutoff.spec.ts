@@ -30,6 +30,26 @@ test.describe('SystemSection mobile cutoff @responsive', () => {
     const canvas = page.locator('#system canvas');
     await expect(canvas).toHaveCount(0);
   });
+
+  test('Three.js / R3F chunks are not fetched at mobile viewport @responsive', async ({ page }) => {
+    // Intercept network requests before navigating
+    const threeRequests: string[] = [];
+    page.on('request', (r) => {
+      const url = r.url();
+      // Match any chunk containing three or r3f in the path/filename
+      if (/\/(three|r3f|fiber)[^/]*\.js/i.test(url) || /[Tt]hree[^/]*\.js/.test(url)) {
+        threeRequests.push(url);
+      }
+    });
+
+    await page.goto('/');
+    await page.waitForTimeout(800);
+    await page.locator('#system').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(600);
+
+    // No Three.js/R3F chunk should be requested on mobile
+    expect(threeRequests).toHaveLength(0);
+  });
 });
 
 test.describe('SystemSection desktop has scene @responsive', () => {

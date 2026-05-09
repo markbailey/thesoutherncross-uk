@@ -11,7 +11,7 @@ import {
 } from '../solar-system/useCameraState';
 import { isWebGLAvailable } from '../solar-system/webgl';
 import { type OverlayGame, type OverlayServer } from '../solar-system/HudOverlay';
-import { SceneShell } from './SceneShell';
+import { SceneShell, type SceneGame } from './SceneShell';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 
 interface ApiServer {
@@ -267,17 +267,7 @@ export function SystemSection() {
 
 interface FullBleedLayoutProps {
   games: OverlayGame[];
-  sceneGames: Array<{
-    id: string;
-    planet: { color: string; size: number; orbitRadius: number; orbitSpeed: number };
-    servers: Array<{
-      id: string;
-      online: boolean;
-      players: number | null;
-      maxPlayers: number | null;
-      ping: number | null;
-    }>;
-  }>;
+  sceneGames: SceneGame[];
   loading: boolean;
   error: boolean;
   useFallback: boolean;
