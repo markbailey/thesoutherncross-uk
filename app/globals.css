@@ -411,8 +411,8 @@ body {
 .site-nav__brand .eyebrow { display: none; }
 .site-nav__brand .display { font-size: 11px; letter-spacing: 0.18em; }
 @media (min-width: 640px) {
-  .site-nav__brand .eyebrow { display: revert; }
-  .site-nav__brand .display { font-size: revert; letter-spacing: revert; }
+  .site-nav__brand .eyebrow { display: inline; }
+  .site-nav__brand .display { font-size: unset; letter-spacing: 0.02em; }
 }
 
 /* ── NavDrawer — right-side mobile navigation ─────────────────────── */

@@ -18,17 +18,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── React mock ────────────────────────────────────────────────────────────
 // These are module-level so vi.mock can capture them in its factory.
-const _mockSetState = vi.fn();
-let _latestInit: unknown;
-let _pendingEffect: (() => (() => void) | void) | undefined;
+const mockSetState = vi.fn();
+let latestInit: unknown;
+let pendingEffect: (() => (() => void) | void) | undefined;
 
 vi.mock('react', () => ({
   useState: (init: unknown) => {
-    _latestInit = init;
-    return [init, _mockSetState];
+    latestInit = init;
+    return [init, mockSetState];
   },
   useEffect: (fn: () => (() => void) | void, _deps?: unknown[]) => {
-    _pendingEffect = fn;
+    pendingEffect = fn;
   },
 }));
 
@@ -47,7 +47,7 @@ function makeMatchMedia(matches: boolean): MockMql {
     removeEventListener: vi.fn(),
     // Convenience: run the captured effect and return its cleanup
     runEffect(): (() => void) | void {
-      return _pendingEffect?.();
+      return pendingEffect?.();
     },
   };
   Object.defineProperty(globalThis, 'window', {
@@ -64,25 +64,25 @@ import { useMediaQuery } from './useMediaQuery';
 // ── Tests ─────────────────────────────────────────────────────────────────
 describe('useMediaQuery', () => {
   beforeEach(() => {
-    _mockSetState.mockClear();
-    _latestInit = undefined;
-    _pendingEffect = undefined;
+    mockSetState.mockClear();
+    latestInit = undefined;
+    pendingEffect = undefined;
   });
 
   it('returns false (default) before effects run — SSR-safe', () => {
     const result = useMediaQuery('(min-width: 768px)');
     // No effect has fired yet → still the initial useState value
     expect(result).toBe(false);
-    expect(_latestInit).toBe(false);
-    expect(_pendingEffect).toBeDefined(); // effect was registered
-    expect(_mockSetState).not.toHaveBeenCalled();
+    expect(latestInit).toBe(false);
+    expect(pendingEffect).toBeDefined(); // effect was registered
+    expect(mockSetState).not.toHaveBeenCalled();
   });
 
   it('accepts a custom defaultValue of true', () => {
     const result = useMediaQuery('(min-width: 1024px)', true);
     expect(result).toBe(true);
-    expect(_latestInit).toBe(true);
-    expect(_mockSetState).not.toHaveBeenCalled();
+    expect(latestInit).toBe(true);
+    expect(mockSetState).not.toHaveBeenCalled();
   });
 
   it('calls window.matchMedia with the query string on mount', () => {
@@ -98,7 +98,7 @@ describe('useMediaQuery', () => {
     const mql = makeMatchMedia(true);
     useMediaQuery('(max-width: 767px)');
     mql.runEffect();
-    expect(_mockSetState).toHaveBeenCalledWith(true);
+    expect(mockSetState).toHaveBeenCalledWith(true);
     expect(mql.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
 
@@ -106,7 +106,7 @@ describe('useMediaQuery', () => {
     const mql = makeMatchMedia(false);
     useMediaQuery('(min-width: 1920px)');
     mql.runEffect();
-    expect(_mockSetState).toHaveBeenCalledWith(false);
+    expect(mockSetState).toHaveBeenCalledWith(false);
   });
 
   it('removes the change listener on cleanup', () => {
