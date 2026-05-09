@@ -104,7 +104,6 @@ function NavBarInner({ session }: NavBarProps) {
         </span>
         <span
           className="display"
-          style={{ fontSize: 12, letterSpacing: '0.22em' }}
         >
           {brandLead}{brandTail ? ' ' : ''}
           {brandTail ? (

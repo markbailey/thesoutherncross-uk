@@ -356,10 +356,10 @@ body {
   position: relative;
   z-index: 3;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 20px;
-  padding: 22px 32px;
+  padding: 18px 20px;
   border-top: 1px solid var(--hair);
   background: rgba(7, 6, 12, 0.75);
   backdrop-filter: blur(8px);
@@ -377,11 +377,12 @@ body {
   font-weight: 500;
   letter-spacing: 0.2em;
 }
-@media (max-width: 640px) {
+@media (min-width: 640px) {
   .site-foot {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 18px 20px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 32px;
   }
 }
 
