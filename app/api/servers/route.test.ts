@@ -1,28 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getDb, closeDb } from '../../../lib/db';
 import { createGame } from '../../../lib/repos/games';
-import { GET } from './route';
-
-type ServersResponse = {
-  games: {
-    id: string;
-    name: string;
-    planet: { color: string; size: number; orbitRadius: number; orbitSpeed: number };
-    servers: {
-      id: string;
-      name: string;
-      host: string;
-      port: number;
-      online: boolean;
-      players: number | null;
-      maxPlayers: number | null;
-      map: string | null;
-      ping: number | null;
-      updatedAt: number | null;
-    }[];
-  }[];
-  updatedAt: number | null;
-};
+import { GET, type ServersResponse } from './route';
 
 function insertServer(
   id: string,

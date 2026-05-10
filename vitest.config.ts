@@ -16,6 +16,15 @@ export default defineConfig({
       provider: 'v8',
       include: ['lib/**/*.ts', 'app/api/**/*.ts'],
       exclude: ['**/*.test.ts', '**/*.d.ts'],
+      // Thresholds set ~5pt below current baseline (stmts 70/branch 78/func 77/lines 70)
+      // so a meaningful regression fails CI but today's coverage stays green.
+      // Raise these as coverage improves.
+      thresholds: {
+        statements: 65,
+        branches: 70,
+        functions: 70,
+        lines: 65,
+      },
     },
   },
 });
