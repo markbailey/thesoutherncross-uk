@@ -765,12 +765,6 @@ body {
   grid-template-columns: repeat(2, 1fr);
 }
 .vitals-grid > * { min-width: 0; }
-@media (min-width: 768px) {
-  .vitals-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (min-width: 1280px) {
-  .vitals-grid { grid-template-columns: repeat(5, 1fr); }
-}
 .comms-value {
   overflow: hidden;
   text-overflow: ellipsis;
