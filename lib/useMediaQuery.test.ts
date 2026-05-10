@@ -55,6 +55,7 @@ function mockMatchMedia(initialMatches: boolean) {
       listeners.delete(cb);
     }),
     fireChange(newMatches: boolean) {
+      mql.matches = newMatches;
       listeners.forEach((cb) => cb({ matches: newMatches } as MediaQueryListEvent));
     },
   };
