@@ -5,6 +5,7 @@ import { AstronautAvatar } from './AstronautAvatar';
 import { deriveHue, formatRelative, type MemberCardMember } from './MemberCard';
 import type { MemberRole } from '../../lib/member-roles';
 import { GUILD } from '../../config/guild';
+import { lockScroll } from '../../lib/scrollLock';
 
 const FOUNDER_ACCENT = '#f2b53b';
 
@@ -64,7 +65,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
       const root = dialogRef.current;
       if (!root) return;
       const focusables = root.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
       );
       if (focusables.length === 0) return;
       const first = focusables[0];
@@ -83,11 +84,10 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
       }
     };
     window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockScroll = lockScroll();
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       // Restore focus to whatever owned it before the modal opened.
       if (
         previouslyFocused instanceof HTMLElement &&
@@ -113,6 +113,7 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      className="member-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -121,19 +122,16 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
-        alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '48px 24px',
         overflowY: 'auto',
         animation: 'memberModalFade 160ms ease',
       }}
     >
       <div
-        className="hud-panel scanlines"
+        className="hud-panel scanlines member-modal-panel"
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: 920,
           background: 'var(--panel)',
           padding: 0,
           boxShadow:
@@ -153,13 +151,10 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
         />
 
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
-            gap: 0,
-          }}
+          className="member-modal-body"
+          style={{ gap: 0 }}
         >
-          <div style={{ padding: '20px 28px', borderRight: '1px solid var(--hair)' }}>
+          <div className="member-modal-detail" style={{ padding: '20px 28px' }}>
             <div className="eyebrow p" style={{ marginBottom: 8 }}>
               // BIO
             </div>
@@ -259,12 +254,6 @@ export function MemberModal({ member, onClose }: MemberModalProps) {
           </div>
         </div>
       </div>
-      <style>{`
-        @keyframes memberModalFade {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -466,12 +455,14 @@ function ModalHeader({
           type="button"
           onClick={onClose}
           className="hud-btn"
-          aria-label="Close"
+          aria-label="Close member profile"
           style={{
             position: 'absolute',
             top: 0,
             right: 0,
-            padding: '8px 14px',
+            padding: '12px 14px',
+            minWidth: 44,
+            minHeight: 44,
             fontSize: 11,
             letterSpacing: '0.2em',
           }}
