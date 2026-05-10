@@ -35,7 +35,7 @@ export function ListMode({ games }: ListModeProps) {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
         gap: 20,
         padding: 16,
         overflow: 'auto',
@@ -51,18 +51,28 @@ export function ListMode({ games }: ListModeProps) {
 
 function GameTable({ game }: { game: OverlayGame }) {
   return (
-    <div style={{ border: '1px solid var(--hair-p)' }}>
+    <div style={{ border: '1px solid var(--hair-p)', minWidth: 0, overflow: 'hidden' }}>
       <div
         style={{
           padding: '10px 12px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          gap: 8,
+          minWidth: 0,
         }}
       >
         <span
           className="display"
-          style={{ fontSize: 14, letterSpacing: '0.08em', color: 'var(--ink)' }}
+          style={{
+            fontSize: 14,
+            letterSpacing: '0.08em',
+            color: 'var(--ink)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+          }}
         >
           {game.name}
         </span>
@@ -72,11 +82,19 @@ function GameTable({ game }: { game: OverlayGame }) {
       <table
         style={{
           width: '100%',
+          tableLayout: 'fixed',
           borderCollapse: 'collapse',
           fontFamily: 'var(--mono)',
           fontSize: 11,
         }}
       >
+        <colgroup>
+          <col style={{ width: '34%' }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '20%' }} />
+          <col style={{ width: '10%' }} />
+        </colgroup>
         <thead>
           <tr style={{ color: 'var(--ink-faint)', textAlign: 'left' }}>
             <th style={{ padding: '8px 10px', fontWeight: 400 }}>NAME</th>

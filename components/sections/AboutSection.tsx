@@ -92,8 +92,7 @@ export function AboutSection() {
                 textShadow: '0 0 24px rgba(124,58,237,0.25)',
               }}
             >
-              A friendly group of
-              <br />
+              A friendly group of{' '}
               <span
                 style={{
                   color: 'var(--royal-green-neon)',
@@ -102,11 +101,7 @@ export function AboutSection() {
               >
                 like-minded
               </span>{' '}
-              gamers
-              <br />
-              running the servers
-              <br />
-              we want to play on.
+              gamers running the servers we want to play on.
             </h2>
 
             <p
@@ -246,10 +241,11 @@ export function AboutSection() {
                     className="num display"
                     style={{
                       marginTop: 4,
-                      fontSize: 30,
+                      fontSize: 'clamp(18px, 2.4vw, 30px)',
                       color: 'var(--ink)',
                       letterSpacing: '0.04em',
-                      lineHeight: 1,
+                      lineHeight: 1.1,
+                      overflowWrap: 'anywhere',
                     }}
                   >
                     {GUILD.stats[key]}
