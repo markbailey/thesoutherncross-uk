@@ -762,7 +762,7 @@ body {
 }
 .vitals-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 .vitals-grid > * { min-width: 0; }
 .comms-value {

@@ -241,11 +241,10 @@ export function AboutSection() {
                     className="num display"
                     style={{
                       marginTop: 4,
-                      fontSize: 'clamp(18px, 2.4vw, 30px)',
+                      fontSize: 30,
                       color: 'var(--ink)',
                       letterSpacing: '0.04em',
-                      lineHeight: 1.1,
-                      overflowWrap: 'anywhere',
+                      lineHeight: 1,
                     }}
                   >
                     {GUILD.stats[key]}
