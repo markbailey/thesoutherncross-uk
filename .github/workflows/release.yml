@@ -7,28 +7,42 @@ on:
 permissions:
   contents: write
 
+# Serialise releases — back-to-back merges to main must not race the version bump or tag push.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.actor != 'github-actions[bot]'
+    # Three-layer loop guard: bot-actor check + [skip ci] sentinel on the bump commit + GITHUB_TOKEN pushes don't trigger workflows.
+    if: >-
+      github.actor != 'github-actions[bot]'
+      && !contains(github.event.head_commit.message, '[skip ci]')
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Test
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Detect bump type
         id: bump
         shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          MSG="$(git log -1 --pretty=%B)"
-          TYPE="$(COMMIT_MESSAGE="$MSG" node ./scripts/detect-bump.mjs)"
+          TYPE="$(node ./scripts/detect-bump.mjs)"
           echo "type=$TYPE" >> "$GITHUB_OUTPUT"
 
       - name: Bump version in package files
@@ -43,20 +57,24 @@ jobs:
       - name: Build zip
         run: npm run build:zip
 
-      - name: Commit, tag, and push
+      - name: Commit and push version bump
+        id: commit
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
           git commit -m "chore: bump version to v${{ steps.version.outputs.new }} [skip ci]"
-          git tag "v${{ steps.version.outputs.new }}"
-          git push origin main --follow-tags
+          git push origin main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
+        # `gh release create --target $SHA` creates the tag server-side, atomic with the release —
+        # no orphan tag if the release call fails after a local `git tag` push.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "v${{ steps.version.outputs.new }}" deploy.zip \
+            --target "${{ steps.commit.outputs.sha }}" \
             --title "v${{ steps.version.outputs.new }}" \
             --generate-notes
