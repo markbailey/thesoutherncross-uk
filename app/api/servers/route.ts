@@ -1,11 +1,36 @@
 import { buildDemoServersResponse } from '../../../config/demo-servers';
 import { getDb } from '../../../lib/db';
-import { listAllGames, computePlanet } from '../../../lib/repos/games';
+import { listAllGames, computePlanet, type PlanetVisual } from '../../../lib/repos/games';
 import { jsonNoStore } from '../../../lib/api-helpers';
 import { childLogger } from '../../../lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+export type ServerEntry = {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  online: boolean;
+  players: number | null;
+  maxPlayers: number | null;
+  map: string | null;
+  ping: number | null;
+  updatedAt: number | null;
+};
+
+export type GameEntry = {
+  id: string;
+  name: string;
+  planet: PlanetVisual;
+  servers: ServerEntry[];
+};
+
+export type ServersResponse = {
+  games: GameEntry[];
+  updatedAt: number | null;
+};
 
 type StatusRow = {
   id: string;
