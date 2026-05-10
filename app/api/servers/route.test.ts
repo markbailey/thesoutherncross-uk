@@ -110,6 +110,7 @@ describe('GET /api/servers', () => {
     const res = GET();
     const body = await res.json() as ServersResponse;
     expect(body.games).toHaveLength(0);
+    expect(body.updatedAt).toBeNull();
   });
 
   it('excludes servers with null game_id', async () => {
@@ -119,6 +120,7 @@ describe('GET /api/servers', () => {
     const res = GET();
     const body = await res.json() as ServersResponse;
     expect(body.games).toHaveLength(0);
+    expect(body.updatedAt).toBeNull();
   });
 
   it('excludes games that have no visible servers', async () => {
@@ -127,6 +129,7 @@ describe('GET /api/servers', () => {
     const res = GET();
     const body = await res.json() as ServersResponse;
     expect(body.games).toHaveLength(0);
+    expect(body.updatedAt).toBeNull();
   });
 
   it('reflects online status and stats from server_status', async () => {
@@ -172,9 +175,13 @@ describe('GET /api/servers', () => {
     expect(ids).toEqual(['a-server', 'z-server']);
   });
 
-  it('returns demo response when DEMO_SERVERS=1', () => {
+  it('returns demo response when DEMO_SERVERS=1', async () => {
     vi.stubEnv('DEMO_SERVERS', '1');
     const res = GET();
     expect(res.status).toBe(200);
+    const body = await res.json() as ServersResponse;
+    const ids = body.games.map((g) => g.id);
+    expect(ids).toEqual(['minecraft', 'cs2', 'valheim', 'rust']);
+    expect(body.updatedAt).toEqual(expect.any(Number));
   });
 });
