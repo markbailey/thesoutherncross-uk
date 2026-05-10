@@ -120,7 +120,7 @@ export function MembersSection() {
       id="members"
       style={{
         position: 'relative',
-        padding: '72px 32px 96px',
+        padding: '48px 20px 64px',
         borderTop: '1px solid var(--hair)',
         background: 'var(--space)',
       }}
@@ -223,7 +223,7 @@ export function MembersSection() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
               gap: 14,
             }}
           >
@@ -245,25 +245,6 @@ export function MembersSection() {
       {openMember ? (
         <MemberModal member={openMember} onClose={() => setOpenMember(null)} />
       ) : null}
-
-      <style>{`
-        [data-steamid][data-highlight="true"] {
-          animation: member-pulse 2s ease-out forwards;
-        }
-        @keyframes member-pulse {
-          0% { box-shadow: 0 0 0 0 rgba(57,255,136,0.7); }
-          60% { box-shadow: 0 0 0 8px rgba(57,255,136,0); }
-          100% { box-shadow: 0 0 0 0 rgba(57,255,136,0); }
-        }
-        @keyframes skeleton-pulse {
-          0%, 100% { opacity: 0.35; }
-          50% { opacity: 0.7; }
-        }
-        .member-skeleton {
-          height: 92px;
-          animation: skeleton-pulse 1.6s ease-in-out infinite;
-        }
-      `}</style>
     </section>
   );
 }
@@ -349,7 +330,7 @@ function SkeletonGrid() {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
         gap: 14,
       }}
     >

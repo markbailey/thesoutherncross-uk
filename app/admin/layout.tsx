@@ -2,11 +2,11 @@ import { redirect } from 'next/navigation';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { sessionOptions, type SessionData } from '../../lib/auth/session';
+import { getSessionOptions, type SessionData } from '../../lib/auth/session';
 import { isAdmin } from '../../lib/auth/roles';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+  const session = await getIronSession<SessionData>(await cookies(), getSessionOptions());
 
   if (!session.steamid || !isAdmin(session.steamid)) {
     redirect('/');

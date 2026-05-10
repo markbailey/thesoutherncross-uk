@@ -11,14 +11,9 @@
 #
 # --- Choices documented inline ----------------------------------------------
 #
-# Entrypoint: this script wires the service to run `node` against tsx's actual
-# CLI entry file (node_modules\tsx\dist\cli.mjs) executing `server.ts`.
-# Rationale: `tsx` lives in devDependencies, and the deploy runbook requires
-# `npm ci --include=dev` so its package is present at runtime. We point node
-# at tsx's real .mjs entry - NOT the .bin\tsx shim, which is a CMD wrapper
-# (.cmd) on Windows and would fail to parse as JavaScript.
-# If you flip tsx to dependencies or pre-compile server.ts to JS, update
-# $appExe / $appArgs below accordingly.
+# Entrypoint: this script wires the service to run `node server.js`.
+# server.js is compiled from server.ts by `npm run build:zip` (tsc standalone
+# build via tsconfig.server.json). No tsx dependency at runtime.
 #
 # Env vars: this script does NOT inline any secrets. It reads `.env` at the
 # site root (line-delimited KEY=VALUE) and passes the lines through to
@@ -56,10 +51,9 @@ $svc      = $ServiceName
 $nssm     = $NssmPath
 $nodeExe  = $NodeExe
 
-# Entrypoint: node + tsx CLI .mjs + server.ts. See "Choices" comment above.
-$tsxCli   = Join-Path $SiteRoot 'node_modules\tsx\dist\cli.mjs'
+$serverJs = Join-Path $SiteRoot 'server.js'
 $appExe   = $nodeExe
-$appArgs  = "`"$tsxCli`" server.ts"
+$appArgs  = "`"$serverJs`""
 
 $logsDir  = Join-Path $SiteRoot 'logs'
 $envFile  = Join-Path $SiteRoot '.env'

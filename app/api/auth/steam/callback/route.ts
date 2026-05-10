@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { verifyAssertion } from '../../../../../lib/auth/steam-openid';
-import { sessionOptions, type SessionData } from '../../../../../lib/auth/session';
+import { getSessionOptions, type SessionData } from '../../../../../lib/auth/session';
 import { isMember, isAdmin } from '../../../../../lib/auth/roles';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     if (!isMember(steamid)) {
       const deniedResponse = NextResponse.redirect(new URL('/?login=denied', siteBase));
-      const session = await getIronSession<SessionData>(request, deniedResponse, sessionOptions);
+      const session = await getIronSession<SessionData>(request, deniedResponse, getSessionOptions());
       await session.destroy();
       return deniedResponse;
     }
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       | undefined;
 
     const response = NextResponse.redirect(new URL(returnTo, siteBase));
-    const session = await getIronSession<SessionData>(request, response, sessionOptions);
+    const session = await getIronSession<SessionData>(request, response, getSessionOptions());
     session.steamid = steamid;
     session.persona = member?.persona ?? steamid;
     session.avatar = member?.avatar ?? '';
