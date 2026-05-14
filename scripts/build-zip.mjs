@@ -5,14 +5,8 @@ import { extname, join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root       = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const tar        = 'C:\\Windows\\System32\\tar.exe';
 const standalone = resolve(root, '.next', 'standalone');
 const outPath    = process.argv[2] ?? resolve(root, 'deploy.zip');
-
-if (!existsSync(tar)) {
-  console.error(`ERROR: tar not found at ${tar}`);
-  process.exit(1);
-}
 
 if (!existsSync(standalone)) {
   console.error('ERROR: .next/standalone not found — run `npm run build` first.');
@@ -80,15 +74,12 @@ for (const item of ['scripts', 'web.config', '.env.example', 'data']) {
 if (existsSync(outPath)) unlinkSync(outPath);
 console.log(`==> Building deploy.zip\n    Root:   ${staging}\n    Output: ${outPath}`);
 try {
-  execFileSync(tar, [
-    '-acf', outPath,
-    '-C', staging,
-    '--exclude', '*.sqlite',
-    '--exclude', '*.sqlite-*',
-    '--exclude', '*.tsbuildinfo',
-    '--exclude', 'scripts/build-zip.mjs',
-    '.',
-  ], { stdio: 'inherit' });
+  if (process.platform === 'win32') {
+    const tar = `${process.env.SystemRoot ?? 'C:\\Windows'}\\System32\\tar.exe`;
+    execFileSync(tar, ['-acf', outPath, '-C', staging, '--exclude', '*.sqlite', '--exclude', '*.sqlite-*', '--exclude', '*.tsbuildinfo', '--exclude', 'scripts/build-zip.mjs', '.'], { stdio: 'inherit' });
+  } else {
+    execFileSync('zip', ['-rq', outPath, '.', '-x', '*.sqlite', '*.sqlite-*', '*.tsbuildinfo', 'scripts/build-zip.mjs'], { cwd: staging, stdio: 'inherit' });
+  }
 } finally {
   rmSync(staging, { recursive: true, force: true });
 }
