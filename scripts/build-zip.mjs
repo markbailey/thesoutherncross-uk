@@ -75,10 +75,40 @@ if (existsSync(outPath)) unlinkSync(outPath);
 console.log(`==> Building deploy.zip\n    Root:   ${staging}\n    Output: ${outPath}`);
 try {
   if (process.platform === 'win32') {
-    const tar = `${process.env.SystemRoot ?? 'C:\\Windows'}\\System32\\tar.exe`;
-    execFileSync(tar, ['-acf', outPath, '-C', staging, '--exclude', '*.sqlite', '--exclude', '*.sqlite-*', '--exclude', '*.tsbuildinfo', '--exclude', 'scripts/build-zip.mjs', '.'], { stdio: 'inherit' });
+    const tar = 'C:\\Windows\\System32\\tar.exe';
+    if (!existsSync(tar)) {
+      console.error(`ERROR: tar not found at ${tar}`);
+      process.exit(1);
+    }
+    execFileSync(tar, [
+      '-acf', outPath,
+      '-C', staging,
+      '--exclude', '*.sqlite',
+      '--exclude', '*.sqlite-*',
+      '--exclude', '*.tsbuildinfo',
+      '--exclude', 'scripts/build-zip.mjs',
+      '.',
+    ], { stdio: 'inherit' });
   } else {
-    execFileSync('zip', ['-rq', outPath, '.', '-x', '*.sqlite', '*.sqlite-*', '*.tsbuildinfo', 'scripts/build-zip.mjs'], { cwd: staging, stdio: 'inherit' });
+    try {
+      execFileSync('zip', ['-v'], { stdio: 'ignore' });
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        console.error('ERROR: zip command not found in PATH.');
+        process.exit(1);
+      }
+      console.error(`ERROR: zip command check failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+    execFileSync('zip', [
+      '-rq', outPath,
+      '.',
+      '-x',
+      '*.sqlite',
+      '*.sqlite-*',
+      '*.tsbuildinfo',
+      'scripts/build-zip.mjs',
+    ], { cwd: staging, stdio: 'inherit' });
   }
 } finally {
   rmSync(staging, { recursive: true, force: true });
