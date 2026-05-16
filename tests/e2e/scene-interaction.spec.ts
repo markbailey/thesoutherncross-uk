@@ -3,7 +3,7 @@ import { mockApi } from '../lib/mockApi';
 import { freezeScene, waitForReady } from '../lib/freezeScene';
 import populated from '../lib/fixtures/servers-populated.json' with { type: 'json' };
 
-test.describe('@e2e scene interaction', () => {
+test.describe('@e2e scene interaction @desktop-only', () => {
   test.beforeEach(async ({ page }) => {
     await freezeScene(page);
     await mockApi(page, { servers: populated });
