@@ -1,6 +1,6 @@
 {
   "name": "@markbailey/thesoutherncross-uk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "The Southern Cross UK — guild site: live solar-system server hub + Steam roster",
   "keywords": [],
@@ -23,12 +23,14 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
-    "dev:demo": "cross-env DEMO_SERVERS=1 tsx server.ts",
+    "dev:demo": "cross-env DEMO_SERVERS=1 SESSION_SECRET=dev-demo-only-not-for-production-use-xxxxx tsx server.ts",
     "build": "next build",
     "build:zip": "node ./scripts/build-zip.mjs",
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:visual": "playwright test --grep @visual"
@@ -41,8 +43,10 @@
     "better-sqlite3": "^12.9.0",
     "fast-xml-parser": "^4.5.0",
     "gamedig": "^5.3.2",
+    "iron-session": "^8.0.4",
     "lru-cache": "^11.0.2",
     "next": "^16.2.4",
+    "openid": "^2.0.15",
     "pino": "^9.5.0",
     "pino-roll": "^3.0.0",
     "postprocessing": "^6.39.1",
@@ -59,14 +63,16 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.184.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
+    "happy-dom": "^20.9.0",
     "pino-pretty": "^13.1.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=20.18.0"

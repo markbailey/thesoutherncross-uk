@@ -30,8 +30,12 @@ export interface SceneProps {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
-function hexToHue(hex: string): number {
-  const m = hex.replace('#', '');
+function colorToHue(color: string): number {
+  // Handle hsl(H, ...) strings from computePlanet
+  const hslMatch = color.match(/^hsl\((\d+(?:\.\d+)?)/);
+  if (hslMatch) return Number(hslMatch[1]);
+  // Hex fallback
+  const m = color.replace('#', '');
   const r = parseInt(m.slice(0, 2), 16) / 255;
   const g = parseInt(m.slice(2, 4), 16) / 255;
   const b = parseInt(m.slice(4, 6), 16) / 255;
@@ -569,7 +573,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     const planetMeshes: PlanetMesh[] = [];
     const initialGames = gamesRef.current;
     initialGames.forEach((g, i) => {
-      const hue = hexToHue(g.planet.color);
+      const hue = colorToHue(g.planet.color);
       const pr = g.planet.size * 12;
       const orbitR = g.planet.orbitRadius * 22;
 
@@ -608,15 +612,12 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
       const moons: PlanetMesh['moons'] = [];
       g.servers.forEach((srv, mi) => {
         const mGeom = new THREE.SphereGeometry(Math.max(1.8, pr * 0.18), 24, 24);
-        const tone = statusOf(srv);
-        const moonHue =
-          tone === 'on' ? 145 : tone === 'warn' ? 40 : 0;
         const mMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(`hsl(${moonHue + (mi - 1) * 10}, 50%, 55%)`),
-          emissive: new THREE.Color(`hsl(${moonHue}, 60%, 30%)`),
-          emissiveIntensity: 0.6,
-          roughness: 0.85,
-          metalness: 0.1,
+          color: new THREE.Color('#8a8fa8'),
+          emissive: new THREE.Color('#3a3d4a'),
+          emissiveIntensity: 0.4,
+          roughness: 0.9,
+          metalness: 0.05,
         });
         const mMesh = new THREE.Mesh(mGeom, mMat);
         const angle = (mi / Math.max(1, g.servers.length)) * Math.PI * 2;
@@ -725,7 +726,7 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
         const anyOn = g.servers.some((s) => s.online);
         const anyWarn = g.servers.some((s) => statusOf(s) === 'warn');
         const dotClass = anyOn ? (anyWarn ? 'warn' : 'on') : 'off';
-        const hue = hexToHue(g.planet.color);
+        const hue = colorToHue(g.planet.color);
         const short = g.id.slice(0, 3).toUpperCase();
         const shardWord = g.servers.length === 1 ? 'SHARD' : 'SHARDS';
         lb.el.innerHTML = `
@@ -745,42 +746,12 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     };
     updateLabelContent();
 
-    // updateMoonMaterials re-reads gamesRef.current and updates each moon's
-    // color/emissive based on the current per-server status. Keeps the 3D
-    // moon coloring in sync with SWR-polled status/ping changes without
-    // rebuilding any geometry/material.
-    const updateMoonMaterials = () => {
-      const fresh = gamesRef.current;
-      const byId = new Map<string, SceneGame>();
-      for (const g of fresh) byId.set(g.id, g);
-      planetMeshes.forEach((pm) => {
-        const g = byId.get(pm.data.id);
-        if (!g) return;
-        pm.moons.forEach((mm, mi) => {
-          const srv = g.servers.find((s) => s.id === mm.serverId);
-          if (!srv) return;
-          const tone = statusOf(srv);
-          const moonHue = tone === 'on' ? 145 : tone === 'warn' ? 40 : 0;
-          const mat = mm.mesh.material as THREE.MeshStandardMaterial;
-          mat.color.set(`hsl(${moonHue + (mi - 1) * 10}, 50%, 55%)`);
-          mat.emissive.set(`hsl(${moonHue}, 60%, 30%)`);
-        });
-      });
-    };
-
-    // expose so the prop-watch effect can call them
+    // expose so the prop-watch effect can call it
     (
       container as HTMLDivElement & {
         __updateLabels?: () => void;
-        __updateMoons?: () => void;
       }
     ).__updateLabels = updateLabelContent;
-    (
-      container as HTMLDivElement & {
-        __updateLabels?: () => void;
-        __updateMoons?: () => void;
-      }
-    ).__updateMoons = updateMoonMaterials;
 
     // Resize
     const onResize = () => {
@@ -1116,10 +1087,14 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     };
     containerExt.__startSceneLoop = startLoop;
     containerExt.__stopSceneLoop = stopLoop;
-    if (visibleRef.current) startLoop();
+    // Start unconditionally — the visibility watcher (which fires async via IO)
+    // will call stopLoop if the section is offscreen. Gating here caused the loop
+    // to never start because visibleRef is always false at build time.
+    startLoop();
 
     // Cleanup
     return () => {
+      builtRef.current = false; // allow rebuild after unmount (React Strict Mode re-mounts)
       stopLoop();
       containerExt.__startSceneLoop = undefined;
       containerExt.__stopSceneLoop = undefined;
@@ -1156,18 +1131,15 @@ export function Scene({ games, onWebGLFailure }: SceneProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [games.length]);
 
-  // Prop-watch effect: whenever games change, refresh label content and moon
-  // material colors. Both flow from gamesRef.current so SWR-polled status
-  // changes reach the DOM and the 3D moons without rebuilding the scene.
+  // Prop-watch effect: whenever games change, refresh label content.
+  // Moon materials stay fixed (gray resting state set at init).
   React.useEffect(() => {
     const container = wrapperRef.current as
       | (HTMLDivElement & {
           __updateLabels?: () => void;
-          __updateMoons?: () => void;
         })
       | null;
     container?.__updateLabels?.();
-    container?.__updateMoons?.();
   }, [games]);
 
   return (

@@ -57,7 +57,7 @@ export function JoinSection() {
       id="join"
       style={{
         position: 'relative',
-        padding: '96px 32px 120px',
+        padding: '64px 20px 80px',
         borderTop: '1px solid var(--hair)',
         background: 'var(--space)',
         overflow: 'hidden',
@@ -74,8 +74,10 @@ export function JoinSection() {
         }}
       />
 
-      <SideTicks side="left" />
-      <SideTicks side="right" />
+      <div className="join-side-ticks">
+        <SideTicks side="left" />
+        <SideTicks side="right" />
+      </div>
 
       <div
         style={{
@@ -158,12 +160,11 @@ export function JoinSection() {
             </div>
 
             <div
+              className="join-cta-row"
               style={{
                 marginTop: 22,
-                display: 'flex',
                 gap: 12,
                 flexWrap: 'wrap',
-                alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
@@ -180,7 +181,7 @@ export function JoinSection() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  minWidth: 240,
+                  minHeight: 48,
                   justifyContent: 'center',
                 }}
               >
@@ -201,7 +202,7 @@ export function JoinSection() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  minWidth: 240,
+                  minHeight: 48,
                   justifyContent: 'center',
                 }}
               >
@@ -257,8 +258,8 @@ function SideTicks({ side }: { side: 'left' | 'right' }) {
       aria-hidden
       style={{
         position: 'absolute',
-        top: 96,
-        bottom: 96,
+        top: 64,
+        bottom: 80,
         width: 12,
         pointerEvents: 'none',
         ...edge,

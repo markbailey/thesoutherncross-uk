@@ -1,10 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { HudPanel, HudButton, HudCorner, HairlineDivider } from '../hud';
-import { GAMES } from '../../config/servers';
 import { GUILD } from '../../config/guild';
 import {
   useCameraState,
@@ -12,17 +10,15 @@ import {
   SYSTEM_USER_ZOOM_MAX,
 } from '../solar-system/useCameraState';
 import { isWebGLAvailable } from '../solar-system/webgl';
-import { HudOverlay, type OverlayGame, type OverlayServer } from '../solar-system/HudOverlay';
-import { ListMode } from '../solar-system/ListMode';
-
-const Scene = dynamic(() => import('../solar-system/Scene').then((m) => m.Scene), {
-  ssr: false,
-  loading: () => <SceneSkeleton />,
-});
+import { type OverlayGame, type OverlayServer } from '../solar-system/HudOverlay';
+import { SceneShell, type SceneGame } from './SceneShell';
+import { useMediaQuery } from '../../lib/useMediaQuery';
 
 interface ApiServer {
   id: string;
   name: string;
+  host: string;
+  port: number;
   online: boolean;
   players: number | null;
   maxPlayers: number | null;
@@ -37,7 +33,7 @@ interface ApiGame {
   servers: ApiServer[];
 }
 interface ApiResponse {
-  games: ApiGame[];
+  games?: ApiGame[];
   updatedAt: number | null;
 }
 
@@ -47,18 +43,6 @@ const fetcher = async (url: string): Promise<ApiResponse> => {
   return (await res.json()) as ApiResponse;
 };
 
-/** Connect strings come from the static GAMES manifest (hosts are not exposed via API). */
-// Server ids are globally unique across all games — see config/servers.ts. Map is flat by design.
-const CONNECT_STRINGS: Record<string, string> = (() => {
-  const out: Record<string, string> = {};
-  for (const g of GAMES) {
-    for (const s of g.servers) {
-      out[s.id] = `${s.host}:${s.port}`;
-    }
-  }
-  return out;
-})();
-
 // Shallow structural compare for SWR. Compares every rendered field
 // (game/server names, planet visuals, server status/players/map/ping) and
 // ignores only `updatedAt` (top-level + per-server) since it's not rendered —
@@ -66,31 +50,39 @@ const CONNECT_STRINGS: Record<string, string> = (() => {
 function sameApiSnapshot(a: ApiResponse | undefined, b: ApiResponse | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  if (a.games.length !== b.games.length) return false;
-  for (let i = 0; i < a.games.length; i++) {
-    const ga = a.games[i];
-    const gb = b.games[i];
+
+  // Compare games list
+  const ga = a.games ?? [];
+  const gb = b.games ?? [];
+  if (ga.length !== gb.length) return false;
+  for (let i = 0; i < ga.length; i++) {
+    const g1 = ga[i];
+    const g2 = gb[i];
+    if (!g1 || !g2) return false;
     if (
-      ga.id !== gb.id ||
-      ga.name !== gb.name ||
-      ga.planet.color !== gb.planet.color ||
-      ga.planet.size !== gb.planet.size ||
-      ga.planet.orbitRadius !== gb.planet.orbitRadius ||
-      ga.planet.orbitSpeed !== gb.planet.orbitSpeed
+      g1.id !== g2.id ||
+      g1.name !== g2.name ||
+      g1.planet.color !== g2.planet.color ||
+      g1.planet.size !== g2.planet.size ||
+      g1.planet.orbitRadius !== g2.planet.orbitRadius ||
+      g1.planet.orbitSpeed !== g2.planet.orbitSpeed
     )
       return false;
-    if (ga.servers.length !== gb.servers.length) return false;
-    for (let j = 0; j < ga.servers.length; j++) {
-      const sa = ga.servers[j];
-      const sb = gb.servers[j];
+    if (g1.servers.length !== g2.servers.length) return false;
+    for (let j = 0; j < g1.servers.length; j++) {
+      const s1 = g1.servers[j];
+      const s2 = g2.servers[j];
+      if (!s1 || !s2) return false;
       if (
-        sa.id !== sb.id ||
-        sa.name !== sb.name ||
-        sa.online !== sb.online ||
-        sa.players !== sb.players ||
-        sa.maxPlayers !== sb.maxPlayers ||
-        sa.map !== sb.map ||
-        sa.ping !== sb.ping
+        s1.id !== s2.id ||
+        s1.name !== s2.name ||
+        s1.host !== s2.host ||
+        s1.port !== s2.port ||
+        s1.online !== s2.online ||
+        s1.players !== s2.players ||
+        s1.maxPlayers !== s2.maxPlayers ||
+        s1.map !== s2.map ||
+        s1.ping !== s2.ping
       )
         return false;
     }
@@ -108,8 +100,8 @@ export function SystemSection() {
   });
 
   const games: OverlayGame[] = React.useMemo(() => {
-    const apiGames = data?.games ?? [];
-    return apiGames.map((g) => ({
+    if (!data?.games) return [];
+    return data.games.map((g) => ({
       id: g.id,
       name: g.name,
       servers: g.servers.map<OverlayServer>((s) => ({
@@ -122,7 +114,9 @@ export function SystemSection() {
         ping: s.ping,
         updatedAt: s.updatedAt,
       })),
-      connectStrings: CONNECT_STRINGS,
+      connectStrings: Object.fromEntries(
+        g.servers.map((s) => [s.id, `${s.host}:${s.port}`])
+      ),
     }));
   }, [data]);
 
@@ -160,6 +154,10 @@ export function SystemSection() {
   const reset = useCameraState((s) => s.reset);
   const deselect = useCameraState((s) => s.deselect);
 
+  // Mobile (<lg): always render ListMode; desktop: respect webgl / listMode flags.
+  // Default to true (desktop) to avoid a layout jump (CLS) on first render for
+  // desktop visitors — this section was desktop-only before the responsive rebuild.
+  const isDesktop = useMediaQuery('(min-width: 1024px)', true);
   const useFallback = webgl === false || listMode;
 
   // Deep-link restore must run exactly once after `games` first populates;
@@ -233,19 +231,19 @@ export function SystemSection() {
     return () => reset();
   }, [reset]);
 
-  const isEmpty = !isLoading && games.length === 0 && !error;
+  const isEmpty = !isLoading && (!data?.games || data.games.length === 0) && !error;
 
   return (
     <section
       id="system"
       style={{
         position: 'relative',
-        minHeight: 'calc(100vh - 56px)',
+        minHeight: isDesktop ? 'calc(100vh - 56px)' : undefined,
         padding: 0,
         borderTop: '1px solid var(--hair)',
         background:
           'radial-gradient(ellipse at center, #050414 0%, #020106 70%), var(--space)',
-        overflow: 'hidden',
+        overflow: isDesktop ? 'hidden' : undefined,
       }}
     >
       {isEmpty ? (
@@ -260,6 +258,7 @@ export function SystemSection() {
           onErrorBoundary={() => setListMode(true)}
           listMode={listMode}
           webgl={webgl}
+          isDesktop={isDesktop}
         />
       )}
     </section>
@@ -268,23 +267,14 @@ export function SystemSection() {
 
 interface FullBleedLayoutProps {
   games: OverlayGame[];
-  sceneGames: Array<{
-    id: string;
-    planet: { color: string; size: number; orbitRadius: number; orbitSpeed: number };
-    servers: Array<{
-      id: string;
-      online: boolean;
-      players: number | null;
-      maxPlayers: number | null;
-      ping: number | null;
-    }>;
-  }>;
+  sceneGames: SceneGame[];
   loading: boolean;
   error: boolean;
   useFallback: boolean;
   onErrorBoundary: () => void;
   listMode: boolean;
   webgl: boolean | null;
+  isDesktop: boolean;
 }
 function FullBleedLayout({
   games,
@@ -295,11 +285,53 @@ function FullBleedLayout({
   onErrorBoundary,
   listMode,
   webgl,
+  isDesktop,
 }: FullBleedLayoutProps) {
   const focusedGameId = useCameraState((s) => s.focusedGameId);
   const userZoom = useCameraState((s) => s.userZoom);
   const setUserZoom = useCameraState((s) => s.setUserZoom);
   const toggleListMode = useCameraState((s) => s.toggleListMode);
+
+  // Mobile layout: section header + ListMode in normal flow
+  if (!isDesktop) {
+    return (
+      <div className="mobile-system-section">
+        {/* Mobile section header */}
+        <div className="mobile-system-header">
+          {/* Decorative HUD label — intentional design-system aesthetic */}
+          <div className="eyebrow p mobile-system-header__eyebrow">
+            // SERVER HUB
+          </div>
+          <div className="display mobile-system-header__title">
+            ORBITAL RECON
+          </div>
+          <div className="crumb mobile-system-header__crumb">
+            <span>OPS</span>
+            <span className="sep">/</span>
+            <b>SYSTEM</b>
+            <span className="sep">·</span>
+            <span className="eyebrow g mobile-system-header__worlds">
+              {games.length ? `${games.length} WORLDS · LIVE` : 'NO WORLDS'}
+            </span>
+          </div>
+        </div>
+        <SceneShell
+          games={games}
+          isDesktop={false}
+        />
+        <div
+          data-testid="mobile-status-legend"
+          className="mobile-system-legend"
+        >
+          <span><span className="dot on" /> ONLINE</span>
+          <span><span className="dot warn" /> LAGGY</span>
+          <span><span className="dot off" /> OFFLINE</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout: full-bleed absolute-positioned with HUD chrome
   return (
     <div
       style={{
@@ -310,8 +342,9 @@ function FullBleedLayout({
         overflow: 'hidden',
       }}
     >
-      {/* Top-left section crumb */}
+      {/* Top-left section crumb — desktop-only HUD chrome */}
       <div
+        data-testid="desktop-hud-crumb"
         style={{
           position: 'absolute',
           top: 24,
@@ -380,18 +413,18 @@ function FullBleedLayout({
       <HudCorner corner="bl" />
       <HudCorner corner="br" />
 
-      {/* Scene fills the section behind the HUD overlay. */}
-      {webgl === null ? (
-        <SceneSkeleton />
-      ) : useFallback ? (
-        <div style={{ position: 'absolute', inset: '72px 24px 64px 24px' }}>
-          <ListMode games={games} />
-        </div>
-      ) : (
-        <SceneErrorBoundary onError={onErrorBoundary}>
-          <Scene games={sceneGames} onWebGLFailure={onErrorBoundary} />
-        </SceneErrorBoundary>
-      )}
+      {/* Scene / ListMode — delegated to SceneShell */}
+      <SceneShell
+        games={games}
+        sceneGames={sceneGames}
+        webgl={webgl}
+        useFallback={useFallback}
+        onErrorBoundary={onErrorBoundary}
+        loading={loading}
+        error={error}
+        focusedGameId={focusedGameId}
+        isDesktop={true}
+      />
 
       {/* Hint band — shown in all scene states; only hidden in list-mode/fallback. */}
       {!useFallback ? (
@@ -460,41 +493,6 @@ function FullBleedLayout({
             pointerEvents: 'auto',
           }}
         >
-          <style>{`
-            input.s3-zoom {
-              -webkit-appearance: none;
-              appearance: none;
-              width: 120px;
-              height: 14px;
-              background: transparent;
-              cursor: pointer;
-            }
-            input.s3-zoom::-webkit-slider-runnable-track {
-              height: 1px;
-              background: var(--hair);
-            }
-            input.s3-zoom::-moz-range-track {
-              height: 1px;
-              background: var(--hair);
-            }
-            input.s3-zoom::-webkit-slider-thumb {
-              -webkit-appearance: none;
-              appearance: none;
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background: var(--royal-green-neon);
-              border: none;
-              margin-top: -3.5px;
-            }
-            input.s3-zoom::-moz-range-thumb {
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background: var(--royal-green-neon);
-              border: none;
-            }
-          `}</style>
           <span
             style={{
               fontSize: 9,
@@ -536,94 +534,13 @@ function FullBleedLayout({
       >
         RA 00 14 12 · DEC +37 12
       </div>
-
-      {/* Right-side floating HUD overlay — only when a planet/server is selected. */}
-      {focusedGameId ? <HudOverlay games={games} loading={loading} error={error} /> : null}
     </div>
   );
-}
-
-function SceneSkeleton() {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--ink-dim)',
-        fontFamily: 'var(--mono)',
-        fontSize: 11,
-        letterSpacing: '0.18em',
-      }}
-    >
-      ESTABLISHING UPLINK…
-    </div>
-  );
-}
-
-interface SceneErrorBoundaryProps {
-  onError: () => void;
-  children: React.ReactNode;
-}
-interface SceneErrorBoundaryState {
-  failed: boolean;
-}
-class SceneErrorBoundary extends React.Component<
-  SceneErrorBoundaryProps,
-  SceneErrorBoundaryState
-> {
-  constructor(props: SceneErrorBoundaryProps) {
-    super(props);
-    this.state = { failed: false };
-  }
-  static getDerivedStateFromError(): SceneErrorBoundaryState {
-    return { failed: true };
-  }
-  componentDidCatch() {
-    this.props.onError();
-  }
-  render() {
-    if (this.state.failed) {
-      return (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--status-warn)',
-            fontFamily: 'var(--mono)',
-            fontSize: 11,
-            letterSpacing: '0.18em',
-          }}
-        >
-          3D UNAVAILABLE — FALLBACK ENGAGED
-        </div>
-      );
-    }
-    return this.props.children;
-  }
 }
 
 function EmptyState() {
   return (
-    <div
-      style={{
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: 1440,
-        margin: '0 auto',
-        height: 'calc(100vh - 56px)',
-        minHeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px',
-      }}
-    >
+    <div className="system-empty-state">
       <DecorativeSystem />
 
       <div style={{ position: 'relative', width: 420, maxWidth: '100%' }}>

@@ -7,22 +7,14 @@
  * See Phase 1 of docs/plan — "config/servers.ts".
  */
 
-export type Protocol = 'source' | 'minecraft';
+import type { ServerConfig } from '../lib/types/servers';
+export type { Protocol, ServerConfig } from '../lib/types/servers';
 
 export type PlanetVisual = {
   color: string;
   size: number;
   orbitRadius: number;
   orbitSpeed: number;
-};
-
-export type ServerConfig = {
-  id: string;
-  name: string;
-  host: string;
-  port: number;
-  protocol: Protocol;
-  hidden?: boolean;
 };
 
 export type GameConfig = {

@@ -12,8 +12,22 @@ test.describe('keyboard accessibility', () => {
     await page.goto('/');
     await waitForReady(page);
 
-    // First tab should land on the nav brand anchor (or a focusable skip target).
-    // Walk forward and confirm we eventually reach each nav link.
+    // On mobile viewports, inline nav is hidden — keyboard test uses the drawer toggle path.
+    const toggle = page.locator('[aria-controls="nav-drawer"]');
+    const isMobileNav = await toggle.isVisible();
+
+    if (isMobileNav) {
+      // Mobile: hamburger toggle is reachable; drawer links reachable after open.
+      await toggle.focus();
+      expect(await page.evaluate(() => document.activeElement?.getAttribute('aria-controls'))).toBe('nav-drawer');
+      await page.keyboard.press('Enter');
+      // Drawer is now open — HOME link is focusable
+      const homeLink = page.locator('#nav-drawer a[href="#hero"]');
+      await expect(homeLink).toBeVisible({ timeout: 2000 });
+      return;
+    }
+
+    // Desktop: Walk forward and confirm we eventually reach each nav link.
     const labels = ['HOME', 'ABOUT', 'SYSTEM', 'MEMBERS', 'JOIN'];
     for (let i = 0; i < 20 && labels.length > 0; i++) {
       await page.keyboard.press('Tab');
@@ -29,9 +43,21 @@ test.describe('keyboard accessibility', () => {
     await page.goto('/');
     await waitForReady(page);
 
-    const membersLink = page.locator('nav a[href="#members"]');
-    await membersLink.focus();
-    await page.keyboard.press('Enter');
+    // On mobile, use drawer link; on desktop, use inline nav link.
+    const toggle = page.locator('[aria-controls="nav-drawer"]');
+    const isMobileNav = await toggle.isVisible();
+
+    if (isMobileNav) {
+      await toggle.click();
+      const membersLink = page.locator('#nav-drawer a[href="#members"]');
+      await membersLink.focus();
+      await page.keyboard.press('Enter');
+    } else {
+      const membersLink = page.locator('nav.site-nav__primary a[href="#members"]');
+      await membersLink.focus();
+      await page.keyboard.press('Enter');
+    }
+
     await page.waitForTimeout(450);
     await expect(page).toHaveURL(/#members$/);
     await expect(page.locator('#members')).toBeInViewport({ ratio: 0.1 });

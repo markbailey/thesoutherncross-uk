@@ -20,7 +20,7 @@ export function Hero() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '48px 32px',
+        padding: '48px 20px',
       }}
     >
       <Starfield density={1} speed={0.06} />
@@ -34,9 +34,9 @@ export function Hero() {
           inset: 0,
           width: '100%',
           height: '100%',
-          opacity: 0.38,
           pointerEvents: 'none',
         }}
+        className="hero-orbit-arcs"
         preserveAspectRatio="xMidYMid slice"
       >
         {[110, 180, 260, 340].map((r, i) => (
@@ -87,9 +87,8 @@ export function Hero() {
         }}
       >
         <div
+          className="hero-status-row"
           style={{
-            display: 'flex',
-            gap: 24,
             color: 'var(--ink-dim)',
             fontSize: 10,
             letterSpacing: '0.24em',
@@ -174,14 +173,12 @@ export function Hero() {
 
       {/* Bottom spec strip — placeholder coordinates per spec. */}
       <div
+        className="hero-spec-strip"
         style={{
           position: 'absolute',
           bottom: 24,
-          left: 32,
-          right: 32,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'end',
+          left: 20,
+          right: 20,
           color: 'var(--ink-faint)',
           fontSize: 10,
           letterSpacing: '0.2em',
@@ -227,7 +224,6 @@ function renderTagline(tagline: string): React.ReactNode {
 
 function ScrollCue() {
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
     if (typeof document === 'undefined') return;
     const el = document.getElementById('system');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -246,6 +242,7 @@ function ScrollCue() {
         letterSpacing: '0.3em',
         textTransform: 'uppercase',
         padding: '10px 18px',
+        minHeight: 44,
         cursor: 'pointer',
         clipPath:
           'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)',

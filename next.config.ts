@@ -16,6 +16,11 @@ function shortSha(): string {
 }
 
 const config: NextConfig = {
+  output: 'standalone',
+  outputFileTracingRoot: process.cwd(),
+  turbopack: {
+    root: process.cwd(),
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ['better-sqlite3', 'gamedig', 'pino', 'pino-roll'],

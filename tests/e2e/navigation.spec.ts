@@ -14,7 +14,16 @@ test.describe('hash navigation', () => {
     await waitForReady(page);
 
     for (const id of ['about', 'system', 'members', 'join'] as const) {
-      await page.locator(`nav a[href="#${id}"]`).click();
+      // On mobile viewports (<768px) the inline nav is hidden behind the drawer.
+      const toggle = page.locator('[aria-controls="nav-drawer"]');
+      const isDrawerNav = await toggle.isVisible();
+      if (isDrawerNav) {
+        // Open drawer, click the link (which closes it), then check URL.
+        await toggle.click();
+        await page.locator(`#nav-drawer a[href="#${id}"]`).click();
+      } else {
+        await page.locator(`nav.site-nav__primary a[href="#${id}"]`).click();
+      }
       await page.waitForTimeout(450);
       await expect(page).toHaveURL(new RegExp(`#${id}$`));
       const section = page.locator(`#${id}`);
