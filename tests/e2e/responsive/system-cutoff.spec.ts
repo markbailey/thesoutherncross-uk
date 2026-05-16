@@ -1,8 +1,10 @@
 /**
  * @responsive
  * system-cutoff.spec.ts — Verifies that:
- *   - At 390px: ListMode is rendered, no R3F <canvas> is present.
- *   - At 1280px: Desktop HUD chrome is rendered (canvas skipped — WebGL unavailable in headless Chromium).
+ *   - At 390px: no R3F <canvas> is rendered and no Three.js/R3F chunks are
+ *     fetched. (Default mockApi fixture is empty, so SystemSection takes the
+ *     EmptyState branch; the assertions hold for ListMode too.)
+ *   - At 1280px: Desktop HUD chrome is rendered. Canvas/Scene assertions live in scene-interaction.spec.ts.
  */
 import { test, expect, type Page } from '@playwright/test';
 import { mockApi } from '../../lib/mockApi';
@@ -74,12 +76,8 @@ test.describe('SystemSection desktop has scene @responsive @desktop-only', () =>
     await expect(mobileStatusLegend).toHaveCount(0);
 
     // Presence: the desktop-only HUD crumb must be rendered, confirming
-    // SceneShell took the desktop branch rather than rendering nothing.
-    // Note: WebGL is not available in headless Chromium, so the WebGL probe
-    // sets useFallback=true and <Scene> does not mount. The chunk-loading
-    // claim ("Three.js never fetched on mobile") could be verified via
-    // network-trace assertions (page.on('request')) or by enabling
-    // --use-gl=swiftshader in the Playwright launch config.
+    // FullBleedLayout took the desktop branch rather than EmptyState or
+    // the mobile path. Canvas/Scene assertions live in scene-interaction.spec.ts.
     const desktopHud = section.locator('[data-testid="desktop-hud-crumb"]');
     await expect(desktopHud).toHaveCount(1);
   });
