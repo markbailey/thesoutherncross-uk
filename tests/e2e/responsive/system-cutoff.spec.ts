@@ -52,7 +52,7 @@ test.describe('SystemSection mobile cutoff @responsive', () => {
   });
 });
 
-test.describe('SystemSection desktop has scene @responsive', () => {
+test.describe('SystemSection desktop has scene @responsive @desktop-only', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test.beforeEach(async ({ page }) => {

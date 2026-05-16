@@ -27,6 +27,7 @@ export default defineConfig({
     {
       name: 'chromium-mobile',
       testMatch: ['e2e/**/*.spec.ts', 'visual/**/*.spec.ts'],
+      grepInvert: /@desktop-only/,
       use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
     },
   ],
