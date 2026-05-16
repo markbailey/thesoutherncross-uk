@@ -159,7 +159,7 @@ interface HeaderProps {
 function Header({ view, gameName, serverName, onDeselect, onToggleList, listMode }: HeaderProps) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-      <div className="crumb" style={{ fontSize: 10 }}>
+      <div className="crumb" data-testid="hud-overlay-crumb" style={{ fontSize: 10 }}>
         <span>INTEL</span>
         {gameName ? (
           <>

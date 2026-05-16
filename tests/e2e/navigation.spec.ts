@@ -62,8 +62,9 @@ test.describe('hash navigation', () => {
 
     const system = page.locator('#system');
     await expect(system).toBeVisible();
-    await expect(system.locator('.crumb')).toContainText('MINECRAFT');
-    await expect(system.locator('.crumb')).toContainText('VANILLA SMP');
+    const hudCrumb = system.locator('[data-testid="hud-overlay-crumb"]');
+    await expect(hudCrumb).toContainText('MINECRAFT');
+    await expect(hudCrumb).toContainText('VANILLA SMP');
   });
 
   test('scroll-spy does not clobber a route-style hash', async ({ page }) => {

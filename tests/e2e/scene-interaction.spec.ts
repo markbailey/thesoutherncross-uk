@@ -24,16 +24,16 @@ test.describe('@e2e scene interaction @desktop-only', () => {
 
     await expect(page).toHaveURL(/#\/servers\/minecraft$/);
     // Breadcrumb shows the selected game uppercased.
-    await expect(system.locator('.crumb')).toContainText('MINECRAFT');
+    await expect(system.locator('[data-testid="hud-overlay-crumb"]')).toContainText('MINECRAFT');
     // While focused, ZOOM OUT button is rendered.
     await expect(system.getByRole('button', { name: 'ZOOM OUT' })).toBeVisible();
 
     // Esc steps back out one level — view returns to 'system' so ZOOM OUT
-    // disappears, the breadcrumb's game-name segment is gone, and the
+    // disappears, the HudOverlay (and its INTEL crumb) is unmounted, and the
     // hash-sync effect strips any lingering #/servers/... fragment.
     await page.keyboard.press('Escape');
     await expect(system.getByRole('button', { name: 'ZOOM OUT' })).toHaveCount(0);
-    await expect(system.locator('.crumb')).not.toContainText('MINECRAFT');
+    await expect(system.locator('[data-testid="hud-overlay-crumb"]')).toHaveCount(0);
     await expect(page).not.toHaveURL(/#\/servers\//);
   });
 
@@ -81,6 +81,6 @@ test.describe('@e2e scene interaction @desktop-only', () => {
     await vanilla.click();
 
     await expect(page).toHaveURL(/#\/servers\/minecraft\/mc-vanilla$/);
-    await expect(system.locator('.crumb')).toContainText('VANILLA SMP');
+    await expect(system.locator('[data-testid="hud-overlay-crumb"]')).toContainText('VANILLA SMP');
   });
 });
