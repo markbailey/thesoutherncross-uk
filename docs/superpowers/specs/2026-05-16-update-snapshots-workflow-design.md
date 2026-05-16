@@ -34,10 +34,10 @@ Steps:
 | 3 | `npm ci` | Lockfile-respecting install. |
 | 4 | `npx playwright install --with-deps chromium` | Same chromium PR #18 already taught CI to install. |
 | 5 | `npx playwright test --update-snapshots` | Writes baselines for missing PNGs; updates existing ones if they drifted. Non-snapshot failures still abort. |
-| 6 | Detect snapshot changes | `git status --porcelain tests/visual/` parsed for `.png` lines; outputs `changed=true/false` and a list of files. |
+| 6 | Detect snapshot changes | `git status --porcelain tests/visual/` (recursive) parsed for `.png` lines; outputs `changed=true/false` and a list of files. |
 | 7 | Conditional: commit + push + PR | Only runs when changes exist. New branch `snapshots/update-${{ github.run_id }}` (unique per run). `gh pr create` opens a PR back to `inputs.ref`. |
 
-Staging discipline: `git add tests/visual/*.png` — explicit glob over the snapshot directory only. Never `git add .` or `-A`.
+Staging discipline: `git add tests/visual/` — recursive add scoped to the snapshot directory. Playwright's default snapshot path template is `{testFileDir}/{testFileName}-snapshots/{arg}{ext}`, so baselines land in per-spec subdirectories under `tests/visual/` rather than flat — a non-recursive glob like `tests/visual/*.png` would miss them entirely (and fail outright when no top-level PNGs exist). Never `git add .` or `-A`.
 
 ### Why a separate workflow rather than extending `release.yml`
 

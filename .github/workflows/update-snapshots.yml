@@ -51,9 +51,10 @@ jobs:
         id: changes
         shell: bash
         run: |
-          # Capture added/modified PNGs under tests/visual/. The default snapshot
-          # path template puts baselines flat in {testFileDir}, which for visual
-          # specs is tests/visual/.
+          # Capture added/modified PNGs under tests/visual/. Playwright's default
+          # snapshot path template is {testFileDir}/{testFileName}-snapshots/{arg}{ext},
+          # so baselines land in per-spec subdirectories under tests/visual/.
+          # `git status --porcelain` recurses, so this picks them up.
           mapfile -t CHANGED < <(git status --porcelain tests/visual/ | awk '/\.png$/ {print $2}')
           if [ ${#CHANGED[@]} -eq 0 ]; then
             echo "No snapshot changes — nothing to commit."
@@ -79,8 +80,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          # Glob over the snapshot directory only — never `git add .` or `-A`.
-          git add tests/visual/*.png
+          # Stage the snapshot directory only — never `git add .` or `-A`.
+          # Recursive add picks up baselines in per-spec subdirectories
+          # (tests/visual/<spec>-snapshots/<arg>-<project>.png).
+          git add tests/visual/
           git commit -m "chore: update playwright snapshots [skip ci]"
           git push origin "$BRANCH"
           gh pr create \
