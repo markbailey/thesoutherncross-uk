@@ -7,10 +7,11 @@
 import { test, expect, type Page } from '@playwright/test';
 import { mockApi } from '../../lib/mockApi';
 import { freezeScene } from '../../lib/freezeScene';
+import populated from '../../lib/fixtures/servers-populated.json' with { type: 'json' };
 
-async function setup(page: Page) {
+async function setup(page: Page, opts: { servers?: unknown } = {}) {
   await freezeScene(page);
-  await mockApi(page);
+  await mockApi(page, { servers: opts.servers });
   await page.goto('/');
   // Wait for SWR to hydrate
   await page.waitForTimeout(600);
@@ -56,7 +57,10 @@ test.describe('SystemSection desktop has scene @responsive @desktop-only', () =>
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test.beforeEach(async ({ page }) => {
-    await setup(page);
+    // Populated fixture so SystemSection takes the FullBleedLayout path
+    // (the EmptyState branch renders neither the mobile header nor the
+    // desktop HUD crumb, which would mask the responsive-cutoff assertion).
+    await setup(page, { servers: populated });
   });
 
   test('does not render the mobile section header at 1280px @responsive', async ({ page }) => {
