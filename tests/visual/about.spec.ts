@@ -13,7 +13,7 @@ test.describe('@visual about', () => {
     await waitForReady(page);
     const about = page.locator('#about');
     await expect(about).toContainText('MISSION BRIEF');
-    await expect(about).toContainText('OPERATIONAL VITALS');
+    await expect(about).toContainText('OPERATIONAL READOUT');
     await expect(about).toContainText('HOUSE RULES');
     await expect(about).toContainText('COMMS PROTOCOL');
   });
