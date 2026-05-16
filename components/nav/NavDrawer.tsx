@@ -101,12 +101,14 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
         className={`nav-drawer-backdrop${open ? ' nav-drawer-backdrop--open' : ''}`}
       />
 
-      {/* Drawer panel — inert when closed removes all focus targets during/after the close transition */}
+      {/* Drawer panel — dialog semantics only apply while open. When closed, drop
+          role + aria-modal so CSS/attribute selectors like
+          [role="dialog"][aria-modal="true"] don't match the off-screen drawer. */}
       <div
         id="nav-drawer"
         ref={drawerRef}
-        role="dialog"
-        aria-modal="true"
+        role={open ? 'dialog' : undefined}
+        aria-modal={open || undefined}
         aria-label="Navigation menu"
         inert={!open || undefined}
         className={`nav-drawer${open ? ' nav-drawer--open' : ''}`}
