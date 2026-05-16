@@ -31,9 +31,14 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'cross-env NEXT_PUBLIC_TEST_MODE=1 npm run dev',
+    command: 'npm run dev',
     url: `${baseURL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    env: {
+      NEXT_PUBLIC_TEST_MODE: '1',
+      SESSION_SECRET:
+        process.env.SESSION_SECRET ?? 'e2e-test-only-not-for-production-use-0000',
+    },
   },
 });
