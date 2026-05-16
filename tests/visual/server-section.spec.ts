@@ -39,7 +39,7 @@ test.describe('@visual system section', () => {
 
     const system = page.locator('#system');
     // Breadcrumb shows MINECRAFT highlighted; PlanetBody renders INSTANCES.
-    await expect(system.locator('.crumb')).toContainText('MINECRAFT');
+    await expect(system.locator('[data-testid="hud-overlay-crumb"]')).toContainText('MINECRAFT');
     await expect(system).toContainText('INSTANCES');
     await expect(system).toContainText('Vanilla SMP');
     await expect(system).toHaveScreenshot('system-planet-selected.png');
@@ -51,7 +51,7 @@ test.describe('@visual system section', () => {
     await waitForReady(page);
 
     const system = page.locator('#system');
-    await expect(system.locator('.crumb')).toContainText('VANILLA SMP');
+    await expect(system.locator('[data-testid="hud-overlay-crumb"]')).toContainText('VANILLA SMP');
     await expect(system).toContainText('LATENCY');
     await expect(system).toContainText('CONNECT');
     await expect(system).toHaveScreenshot('system-server-focused.png');
