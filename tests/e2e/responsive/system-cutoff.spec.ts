@@ -74,12 +74,8 @@ test.describe('SystemSection desktop has scene @responsive @desktop-only', () =>
     await expect(mobileStatusLegend).toHaveCount(0);
 
     // Presence: the desktop-only HUD crumb must be rendered, confirming
-    // SceneShell took the desktop branch rather than rendering nothing.
-    // Note: WebGL is not available in headless Chromium, so the WebGL probe
-    // sets useFallback=true and <Scene> does not mount. The chunk-loading
-    // claim ("Three.js never fetched on mobile") could be verified via
-    // network-trace assertions (page.on('request')) or by enabling
-    // --use-gl=swiftshader in the Playwright launch config.
+    // FullBleedLayout took the desktop branch rather than EmptyState or
+    // the mobile path. Canvas/Scene assertions live in scene-interaction.spec.ts.
     const desktopHud = section.locator('[data-testid="desktop-hud-crumb"]');
     await expect(desktopHud).toHaveCount(1);
   });
