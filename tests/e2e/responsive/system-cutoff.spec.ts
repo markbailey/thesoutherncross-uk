@@ -1,7 +1,9 @@
 /**
  * @responsive
  * system-cutoff.spec.ts — Verifies that:
- *   - At 390px: ListMode is rendered, no R3F <canvas> is present.
+ *   - At 390px: no R3F <canvas> is rendered and no Three.js/R3F chunks are
+ *     fetched. (Default mockApi fixture is empty, so SystemSection takes the
+ *     EmptyState branch; the assertions hold for ListMode too.)
  *   - At 1280px: Desktop HUD chrome is rendered. Canvas/Scene assertions live in scene-interaction.spec.ts.
  */
 import { test, expect, type Page } from '@playwright/test';

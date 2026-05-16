@@ -2,7 +2,7 @@
 
 ## Problem
 
-`tests/e2e/responsive/system-cutoff.spec.ts:78-82` carried a 5-line note explaining that WebGL is unavailable in headless Chromium and that the test therefore can't assert canvas presence:
+The desktop describe block in `tests/e2e/responsive/system-cutoff.spec.ts` carried a 5-line note explaining that WebGL is unavailable in headless Chromium and that the test therefore can't assert canvas presence:
 
 ```
 // Note: WebGL is not available in headless Chromium, so the WebGL probe
@@ -40,7 +40,7 @@ Drop the obsolete WebGL paragraph and replace with a one-line scope marker point
    const desktopHud = section.locator('[data-testid="desktop-hud-crumb"]');
 ```
 
-Also corrects "SceneShell took the desktop branch" → "FullBleedLayout took the desktop branch" — the desktop-vs-mobile branching is in `FullBleedLayout`, not `SceneShell` (which only chooses between `<Scene>` and `<ListMode>`).
+Also corrects "SceneShell took the desktop branch" → "FullBleedLayout took the desktop branch" — the desktop-vs-mobile branching is in `FullBleedLayout`. `SceneShell` makes a different choice (skeleton / `<ListMode>` / `<Scene>` based on `webgl` and `useFallback`), but the mobile-vs-desktop split itself happens upstream in `FullBleedLayout`.
 
 ### Files changed
 
