@@ -102,8 +102,8 @@ export function NavDrawer({ open, onClose, triggerRef }: NavDrawerProps) {
       />
 
       {/* Drawer panel — dialog semantics only apply while open. When closed, drop
-          role + aria-modal so role-based queries (and screen readers landing inside
-          the inert subtree) don't treat the off-screen drawer as an active dialog. */}
+          role + aria-modal so CSS/attribute selectors like
+          [role="dialog"][aria-modal="true"] don't match the off-screen drawer. */}
       <div
         id="nav-drawer"
         ref={drawerRef}

@@ -14,7 +14,7 @@ Affected (chromium-desktop + chromium-mobile):
 - `tests/e2e/member-modal.spec.ts:11`
 - `tests/e2e/responsive/member-modal.spec.ts:27, 37, 47`
 
-The nav-drawer at `components/nav/NavDrawer.tsx:105-112` is always rendered with unconditional `role="dialog"` and `aria-modal="true"`, only flipping `inert` based on `open`. Playwright's role-based queries match elements in the DOM regardless of `inert`, so any modal locator picks up both the drawer and the modal it actually wants.
+The nav-drawer at `components/nav/NavDrawer.tsx:105-112` is always rendered with unconditional `role="dialog"` and `aria-modal="true"`, only flipping `inert` based on `open`. The failing tests use a CSS attribute selector (`[role="dialog"][aria-modal="true"]`), which matches elements regardless of `inert`, so any modal locator picks up both the drawer and the modal it actually wants.
 
 ## Goal
 
@@ -37,7 +37,7 @@ Make `role` and `aria-modal` conditional on `open`:
 
 - **Semantic correctness.** `aria-modal="true"` only makes sense on `role="dialog"` / `role="alertdialog"`. With `role` gone when closed, `aria-modal` must follow.
 - **Same fix surface.** One component, one block. Eight tests need no changes.
-- **Doesn't touch `inert`.** The existing focus-trap behaviour (no tabbable targets, no pointer events) is unaffected; this only changes what role-based queries find.
+- **Doesn't touch `inert`.** The existing focus-trap behaviour (no tabbable targets, no pointer events) is unaffected; this only changes what attribute selectors (and `getByRole`) match.
 - **Open behaviour identical.** When `open === true`, the rendered markup is the same as today.
 
 ### Alternative considered
