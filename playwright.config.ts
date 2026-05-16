@@ -22,7 +22,14 @@ export default defineConfig({
     {
       name: 'chromium-desktop',
       testMatch: ['e2e/**/*.spec.ts', 'visual/**/*.spec.ts'],
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+        // Enable software WebGL so <Scene> mounts in headless CI.
+        // --use-gl=swiftshader: legacy switch still honoured by Playwright's bundled chromium.
+        // --enable-unsafe-swiftshader: required since Chromium 120; without it swiftshader is treated as unsafe-fallback only.
+        launchOptions: { args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] },
+      },
     },
     {
       name: 'chromium-mobile',
