@@ -19,8 +19,8 @@ export async function GET(request: Request) {
   }
 
   // Construct absolute URLs if host is available
-  const host = request.headers.get('host');
-  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const protocol = request.headers.get('x-forwarded-proto') || 'http';
   const baseUrl = host ? `${protocol}://${host}` : '';
 
   const playlist = files.map(file => ({
