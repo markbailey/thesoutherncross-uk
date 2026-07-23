@@ -8,7 +8,8 @@ export async function GET(request: Request) {
   
   try {
     if (fs.existsSync(musicDir)) {
-      files = fs.readdirSync(musicDir).filter(file => {
+      const allEntries = fs.readdirSync(musicDir, { recursive: true });
+      files = allEntries.filter(file => {
         const ext = path.extname(file).toLowerCase();
         return ['.mp3', '.ogg', '.wav', '.flac', '.m4a'].includes(ext);
       });
@@ -23,10 +24,14 @@ export async function GET(request: Request) {
   const protocol = request.headers.get('x-forwarded-proto') || 'http';
   const baseUrl = host ? `${protocol}://${host}` : '';
 
-  const playlist = files.map(file => ({
-    name: file,
-    url: `${baseUrl}/music/${file}`
-  }));
+  const playlist = files.map(file => {
+    // Ensure URL has forward slashes, even on Windows
+    const urlPath = file.replace(/\\/g, '/');
+    return {
+      name: urlPath,
+      url: `${baseUrl}/music/${urlPath}`
+    };
+  });
 
   return NextResponse.json(playlist);
 }

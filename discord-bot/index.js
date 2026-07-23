@@ -88,8 +88,8 @@ client.on(Events.MessageCreate, async (message) => {
         const helpText = `**Available Commands:**
 \`!play [trackname]\` - Play a track or queue it. Plays a random track if no name provided.
 \`!play [track1], [track2]\` - Queue multiple tracks at once.
-\`!playall\` - Queue all available tracks on the server.
-\`!skip\` - Skip the current track.
+\`!playall [folder/name]\` - Queue all tracks, optionally filtered by a folder or name.
+\`!skip\` - Skip the current track. You can also do \`!skip 3\` or \`!skip to [name]\`.
 \`!stop\` - Stop playing and clear the queue.
 \`!queue\` or \`!playlist\` - Show the current queue.
 \`!tracks\` - List all available tracks.
@@ -130,8 +130,42 @@ client.on(Events.MessageCreate, async (message) => {
 
     if (command === 'skip') {
         if (!queue) return message.reply('Nothing is playing.');
+
+        if (args.length > 0) {
+            const firstArg = args[0].toLowerCase();
+            
+            if (firstArg === 'to') {
+                const query = args.slice(1).join(' ').toLowerCase();
+                const targetIndex = queue.tracks.findIndex(t => t.name.toLowerCase().includes(query));
+                
+                if (targetIndex === -1) {
+                    return message.reply(`Track not found in queue: **${query}**`);
+                }
+                
+                // Remove all tracks before the target index
+                queue.tracks.splice(0, targetIndex);
+                message.reply(`Skipped directly to: **${queue.tracks[0].name}**`);
+                
+            } else if (!isNaN(firstArg)) {
+                const skipAmount = parseInt(firstArg, 10);
+                if (skipAmount > 1) {
+                    // Remove (skipAmount - 1) tracks from the queue. 
+                    // Stopping the player will account for the 1 currently playing track.
+                    const tracksToRemove = Math.min(skipAmount - 1, queue.tracks.length);
+                    queue.tracks.splice(0, tracksToRemove);
+                    message.reply(`Skipping ${skipAmount} tracks.`);
+                } else {
+                    message.reply('Skipped track.');
+                }
+            } else {
+                message.reply('Skipped track.');
+            }
+        } else {
+            message.reply('Skipped track.');
+        }
+
         queue.player.stop(); // Triggers Idle to play next
-        return message.reply('Skipped track.');
+        return;
     }
 
     if (command === 'queue' || command === 'playlist') {
@@ -156,7 +190,16 @@ client.on(Events.MessageCreate, async (message) => {
 
             let tracksToQueue = [];
             if (command === 'playall') {
-                tracksToQueue = [...playlist];
+                let list = playlist;
+                if (args.length > 0) {
+                    const query = args.join(' ').toLowerCase();
+                    // Filter to only include tracks whose path contains the query (e.g. folder name)
+                    list = playlist.filter(t => t.name.toLowerCase().includes(query));
+                    if (list.length === 0) {
+                        return message.channel.send(`No tracks found matching folder/name: **${query}**`).catch(console.error);
+                    }
+                }
+                tracksToQueue = [...list];
                 // Shuffle the playlist for variety
                 tracksToQueue.sort(() => Math.random() - 0.5);
             } else if (args.length > 0) {
