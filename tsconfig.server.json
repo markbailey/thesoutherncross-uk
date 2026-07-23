@@ -9,7 +9,7 @@
     "outDir": ".next/standalone",
     "rootDir": "."
   },
-  "include": ["server.ts", "env.ts", "lib/**/*.ts", "types/**/*.d.ts"],
+  "include": ["env.ts", "lib/**/*.ts", "types/**/*.d.ts"],
   "exclude": [
     "node_modules", ".next",
     "**/*.test.ts",
