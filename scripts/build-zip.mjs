@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process';
+
+import { createWriteStream } from 'node:fs';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { extname, join, resolve, dirname } from 'node:path';
@@ -19,6 +21,12 @@ execFileSync(process.execPath, [tscBin, '-p', resolve(root, 'tsconfig.server.jso
   cwd: root,
   stdio: 'inherit',
 });
+
+console.log('==> Injecting custom poller into Next.js server.js');
+const serverJsPath = resolve(standalone, 'server.js');
+let serverJs = readFileSync(serverJsPath, 'utf8');
+serverJs += `\n\n// --- Custom Background Poller ---\ntry {\n  console.log('Starting custom background poller...');\n  require('./env.js');\n  require('./lib/poller.js').start();\n} catch(err) {\n  console.error('Failed to start poller:', err);\n}\n`;
+writeFileSync(serverJsPath, serverJs, 'utf8');
 
 console.log('==> Patching ESM import extensions');
 function patchImports(dir) {
@@ -58,6 +66,16 @@ if (existsSync(publicSrc)) {
   cpSync(publicSrc, publicDst, { recursive: true });
 }
 
+console.log('==> Fixing broken standalone dependencies');
+for (const pkg of ['pino', 'pino-roll', 'thread-stream', 'fast-xml-parser', 'gamedig', 'better-sqlite3']) {
+  const pkgSrc = resolve(root, 'node_modules', pkg);
+  const pkgDst = resolve(standalone, 'node_modules', pkg);
+  if (existsSync(pkgSrc)) {
+    if (existsSync(pkgDst)) rmSync(pkgDst, { recursive: true, force: true });
+    cpSync(pkgSrc, pkgDst, { recursive: true });
+  }
+}
+
 const ts      = Date.now();
 const staging = join(tmpdir(), `thesoutherncross-staging-${ts}`);
 console.log(`==> Staging to ${staging}`);
@@ -73,46 +91,30 @@ for (const item of ['scripts', 'web.config', '.env.example', 'data']) {
 
 if (existsSync(outPath)) unlinkSync(outPath);
 console.log(`==> Building deploy.zip\n    Root:   ${staging}\n    Output: ${outPath}`);
-try {
-  if (process.platform === 'win32') {
-    const tar = 'C:\\Windows\\System32\\tar.exe';
-    if (!existsSync(tar)) {
-      console.error(`ERROR: tar not found at ${tar}`);
-      process.exit(1);
-    }
-    execFileSync(tar, [
-      '-acf', outPath,
-      '-C', staging,
-      '--exclude', '*.sqlite',
-      '--exclude', '*.sqlite-*',
-      '--exclude', '*.tsbuildinfo',
-      '--exclude', 'scripts/build-zip.mjs',
-      '.',
-    ], { stdio: 'inherit' });
-  } else {
-    try {
-      execFileSync('zip', ['-v'], { stdio: 'ignore' });
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        console.error('ERROR: zip command not found in PATH.');
-        process.exit(1);
-      }
-      console.error(`ERROR: zip command check failed: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-    execFileSync('zip', [
-      '-rq', outPath,
-      '.',
-      '-x',
-      '*.sqlite',
-      '*.sqlite-*',
-      '*.tsbuildinfo',
-      'scripts/build-zip.mjs',
-    ], { cwd: staging, stdio: 'inherit' });
+// Clean ignored files
+const dataDir = join(staging, 'data');
+if (existsSync(dataDir)) {
+  for (const f of readdirSync(dataDir)) {
+    if (f.endsWith('.sqlite') || f.includes('.sqlite-')) rmSync(join(dataDir, f));
   }
-} finally {
-  rmSync(staging, { recursive: true, force: true });
 }
+const buildZipScript = join(staging, 'scripts', 'build-zip.mjs');
+if (existsSync(buildZipScript)) rmSync(buildZipScript);
+
+// Remove NFT-traced better-sqlite3 so it uses the root one (which can be rebuilt for the target OS)
+const nextNodeModules = join(staging, '.next', 'node_modules');
+if (existsSync(nextNodeModules)) {
+  for (const f of readdirSync(nextNodeModules)) {
+    if (f.startsWith('better-sqlite3')) rmSync(join(nextNodeModules, f), { recursive: true, force: true });
+  }
+}
+
+if (process.platform === 'win32') {
+  execFileSync('cmd', ['/c', 'npx', '--yes', 'bestzip', outPath, '*', '.next', '.env*'], { cwd: staging, stdio: 'inherit' });
+} else {
+  execFileSync('npx', ['--yes', 'bestzip', outPath, '*', '.next', '.env*'], { cwd: staging, stdio: 'inherit' });
+}
+rmSync(staging, { recursive: true, force: true });
 
 const sizeMb = (statSync(outPath).size / 1024 / 1024).toFixed(1);
 console.log(`    Done: ${sizeMb} MB  ->  ${outPath}`);
