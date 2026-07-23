@@ -6,6 +6,9 @@
 import './env';
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import next from 'next';
 import { closeDb } from './lib/db';
 import { logger } from './lib/logger';
@@ -21,7 +24,32 @@ async function main(): Promise<void> {
 
   await app.prepare();
 
-  const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    if (!dev) {
+      const parsedUrl = new URL(req.url ?? '/', `http://${req.headers.host || 'localhost'}`);
+      const pathname = parsedUrl.pathname;
+      let filePath = '';
+      if (pathname.startsWith('/_next/static/')) {
+        filePath = join(process.cwd(), '.next', 'static', pathname.replace('/_next/static/', ''));
+      } else if (pathname !== '/' && !pathname.startsWith('/api/')) {
+        filePath = join(process.cwd(), 'public', pathname);
+      }
+      
+      if (filePath) {
+        try {
+          const stats = await stat(filePath);
+          if (stats.isFile()) {
+            const ext = filePath.split('.').pop()?.toLowerCase() || '';
+            const mimeTypes: Record<string, string> = { css: 'text/css', js: 'application/javascript', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', ico: 'image/x-icon', mp3: 'audio/mpeg', json: 'application/json', woff2: 'font/woff2' };
+            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+            if (pathname.startsWith('/_next/static/')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            createReadStream(filePath).pipe(res);
+            return;
+          }
+        } catch (e) {}
+      }
+    }
+
     handle(req, res).catch((err: unknown) => {
       logger.error({ err, url: req.url }, 'request handler crashed');
       if (!res.headersSent) {
