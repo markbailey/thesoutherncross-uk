@@ -23,7 +23,7 @@ const config: NextConfig = {
   },
   reactStrictMode: true,
   poweredByHeader: false,
-  serverExternalPackages: ['better-sqlite3', 'gamedig', 'pino', 'pino-roll'],
+  serverExternalPackages: ['better-sqlite3', 'gamedig', 'pino', 'pino-roll', 'fast-xml-parser', 'lru-cache', 'openid', 'iron-session'],
   env: {
     NEXT_PUBLIC_BUILD_SHA: shortSha(),
     NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
