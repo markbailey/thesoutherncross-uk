@@ -2,18 +2,31 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+export const dynamic = 'force-dynamic';
+
+function getAudioFilesRecursive(dir: string, fileList: string[] = [], basePath: string = dir): string[] {
+  if (!fs.existsSync(dir)) return fileList;
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      getAudioFilesRecursive(filePath, fileList, basePath);
+    } else {
+      const ext = path.extname(file).toLowerCase();
+      if (['.mp3', '.ogg', '.wav', '.flac', '.m4a'].includes(ext)) {
+        fileList.push(path.relative(basePath, filePath));
+      }
+    }
+  }
+  return fileList;
+}
+
 export async function GET(request: Request) {
   const musicDir = path.join(process.cwd(), 'public', 'music');
   let files: string[] = [];
   
   try {
-    if (fs.existsSync(musicDir)) {
-      const allEntries = fs.readdirSync(musicDir, { recursive: true });
-      files = allEntries.filter(file => {
-        const ext = path.extname(file).toLowerCase();
-        return ['.mp3', '.ogg', '.wav', '.flac', '.m4a'].includes(ext);
-      });
-    }
+    files = getAudioFilesRecursive(musicDir);
   } catch (error) {
     console.error('Error reading music directory:', error);
     return NextResponse.json({ error: 'Failed to read music directory' }, { status: 500 });

@@ -22,10 +22,23 @@ execFileSync(process.execPath, [tscBin, '-p', resolve(root, 'tsconfig.server.jso
   stdio: 'inherit',
 });
 
-console.log('==> Injecting custom poller into Next.js server.js');
+console.log('==> Injecting custom poller and require patch into Next.js server.js');
 const serverJsPath = resolve(standalone, 'server.js');
 let serverJs = readFileSync(serverJsPath, 'utf8');
-serverJs += `\n\n// --- Custom Background Poller ---\ntry {\n  console.log('Starting custom background poller...');\n  require('./env.js');\n  require('./lib/poller.js').start();\n} catch(err) {\n  console.error('Failed to start poller:', err);\n}\n`;
+
+const requirePatch = `
+// --- Turbopack Native Module Patch ---
+const Module = require('module');
+const originalRequire = Module.prototype.require;
+Module.prototype.require = function(id) {
+  if (typeof id === 'string' && id.startsWith('better-sqlite3-')) {
+    return originalRequire.call(this, 'better-sqlite3');
+  }
+  return originalRequire.apply(this, arguments);
+};
+`;
+
+serverJs = requirePatch + serverJs + `\n\n// --- Custom Background Poller ---\ntry {\n  console.log('Starting custom background poller...');\n  require('./env.js');\n  require('./lib/poller.js').start();\n} catch(err) {\n  console.error('Failed to start poller:', err);\n}\n`;
 writeFileSync(serverJsPath, serverJs, 'utf8');
 
 console.log('==> Patching ESM import extensions');
@@ -109,10 +122,18 @@ if (existsSync(nextNodeModules)) {
   }
 }
 
+// Remove Next.js auto-bundled .env files so we don't overwrite production config
+const stagingEnv = join(staging, '.env');
+if (existsSync(stagingEnv)) rmSync(stagingEnv);
+const stagingEnvLocal = join(staging, '.env.local');
+if (existsSync(stagingEnvLocal)) rmSync(stagingEnvLocal);
+const stagingEnvProd = join(staging, '.env.production');
+if (existsSync(stagingEnvProd)) rmSync(stagingEnvProd);
+
 if (process.platform === 'win32') {
-  execFileSync('cmd', ['/c', 'npx', '--yes', 'bestzip', outPath, '*', '.next', '.env*'], { cwd: staging, stdio: 'inherit' });
+  execFileSync('cmd', ['/c', 'npx', '--yes', 'bestzip', outPath, '*', '.next', '.env.example'], { cwd: staging, stdio: 'inherit' });
 } else {
-  execFileSync('npx', ['--yes', 'bestzip', outPath, '*', '.next', '.env*'], { cwd: staging, stdio: 'inherit' });
+  execFileSync('npx', ['--yes', 'bestzip', outPath, '*', '.next', '.env.example'], { cwd: staging, stdio: 'inherit' });
 }
 rmSync(staging, { recursive: true, force: true });
 
