@@ -13,7 +13,7 @@ function getAudioFilesRecursive(dir: string, fileList: string[] = [], basePath: 
       getAudioFilesRecursive(filePath, fileList, basePath);
     } else {
       const ext = path.extname(file).toLowerCase();
-      if (['.mp3', '.ogg', '.wav', '.flac', '.m4a'].includes(ext)) {
+      if (['.mp3', '.ogg', '.wav', '.flac', '.m4a', '.wma'].includes(ext)) {
         fileList.push(path.relative(basePath, filePath));
       }
     }
